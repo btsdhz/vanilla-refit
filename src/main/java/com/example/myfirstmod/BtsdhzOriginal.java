@@ -1,8 +1,11 @@
 package com.example.myfirstmod;
 
+import com.example.myfirstmod.client.ModKeyBindings;
 import net.minecraft.world.item.CreativeModeTabs;
-import net.neoforged.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 
 @Mod(BtsdhzOriginal.MOD_ID)
@@ -15,6 +18,10 @@ public class BtsdhzOriginal {
         ModBlocks.ITEMS.register(modEventBus);
         ModEntities.ENTITY_TYPES.register(modEventBus);
         modEventBus.addListener(this::addCreativeTabItems);
+
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            modEventBus.addListener(ModKeyBindings::register);
+        }
     }
 
     private void addCreativeTabItems(BuildCreativeModeTabContentsEvent event) {
