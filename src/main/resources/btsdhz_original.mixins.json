@@ -7,7 +7,8 @@
     "BlockItemMixin",
     "BucketMixin",
     "StairBlockMixin",
-    "LeadItemMixin"
+    "LeadItemMixin",
+    "AnvilMenuMixin"
   ],
   "client": [
   ],
