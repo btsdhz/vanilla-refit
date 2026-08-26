@@ -102,6 +102,15 @@ public class FenceKnotEntity extends LeashFenceKnotEntity {
         this.getEntityData().set(DATA_PENDING_PLAYER, Optional.ofNullable(uuid));
     }
 
+    @Override
+    public boolean hurt(net.minecraft.world.damagesource.DamageSource source, float amount) {
+        if (this.level().isClientSide) {
+            return false;
+        }
+        this.cancelAll();
+        return true;
+    }
+
     // ====== 逻辑 ======
 
     @Override
