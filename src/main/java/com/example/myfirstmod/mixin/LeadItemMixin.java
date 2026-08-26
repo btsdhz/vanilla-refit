@@ -72,10 +72,9 @@ public abstract class LeadItemMixin {
                 cir.setReturnValue(InteractionResult.SUCCESS);
                 cir.cancel();
             } else {
-                boolean creative = player.getAbilities().instabuild;
-                createRope(level, pending, pos, !creative);
+                createRope(level, pending, pos);
                 clearPending(player);
-                if (!creative && !context.getItemInHand().isEmpty()) {
+                if (!context.getItemInHand().isEmpty()) {
                     context.getItemInHand().shrink(1);
                 }
                 level.playSound(null, pos, SoundEvents.LEASH_KNOT_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
@@ -113,8 +112,8 @@ public abstract class LeadItemMixin {
         player.getPersistentData().remove(PENDING_KEY);
     }
 
-    private static void createRope(Level level, BlockPos from, BlockPos to, boolean consumeLead) {
-        FenceRopeEntity rope = new FenceRopeEntity(level, from, to, consumeLead);
+    private static void createRope(Level level, BlockPos from, BlockPos to) {
+        FenceRopeEntity rope = new FenceRopeEntity(level, from, to);
         level.addFreshEntity(rope);
     }
 }
