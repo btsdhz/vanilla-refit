@@ -34,16 +34,19 @@ import net.neoforged.neoforge.entity.IEntityWithComplexSpawn;
 public class FenceKnotEntity extends LeashFenceKnotEntity implements IEntityWithComplexSpawn {
     private BlockPos partner;
     private boolean primary;
+    /** 创建时是否消耗了一根拴绳(生存为 true,创造为 false)。 */
+    private boolean leadConsumed;
 
     public FenceKnotEntity(EntityType<? extends FenceKnotEntity> entityType, Level level) {
         super(entityType, level);
     }
 
-    public FenceKnotEntity(Level level, BlockPos pos, BlockPos partner, boolean primary) {
+    public FenceKnotEntity(Level level, BlockPos pos, BlockPos partner, boolean primary, boolean leadConsumed) {
         this(ModEntities.FENCE_KNOT.get(), level);
         this.setPos(pos.getX(), pos.getY(), pos.getZ());
         this.partner = partner;
         this.primary = primary;
+        this.leadConsumed = leadConsumed;
     }
 
     public BlockPos getPartner() {
@@ -52,6 +55,10 @@ public class FenceKnotEntity extends LeashFenceKnotEntity implements IEntityWith
 
     public boolean isPrimary() {
         return this.primary;
+    }
+
+    public boolean isLeadConsumed() {
+        return this.leadConsumed;
     }
 
     @Override
@@ -104,12 +111,14 @@ public class FenceKnotEntity extends LeashFenceKnotEntity implements IEntityWith
             }
         }
         this.level().playSound(null, this.blockPosition(), SoundEvents.LEASH_KNOT_BREAK, SoundSource.BLOCKS, 1.0F, 1.0F);
-        // 把拴绳掉在栅栏桩的“北侧”空气处(相对绳结中心向北 0.25 格),
-        // 避免与栅栏方块/栅栏桩重合而被碰撞弹飞。
-        BlockPos p = this.getPos();
-        ItemEntity lead = new ItemEntity(this.level(), p.getX() + 0.5, p.getY() + 0.45, p.getZ() + 0.25, new ItemStack(Items.LEAD));
-        lead.setDefaultPickUpDelay();
-        this.level().addFreshEntity(lead);
+        // 只有生存模式创建(消耗过拴绳)才返还;创造模式不返还,与原版一致。
+        if (this.leadConsumed) {
+            // 掉在栅栏桩的“北侧”空气处(相对绳结中心向北 0.25 格),避免与栅栏重合被弹飞。
+            BlockPos p = this.getPos();
+            ItemEntity lead = new ItemEntity(this.level(), p.getX() + 0.5, p.getY() + 0.45, p.getZ() + 0.25, new ItemStack(Items.LEAD));
+            lead.setDefaultPickUpDelay();
+            this.level().addFreshEntity(lead);
+        }
         this.discard();
     }
 
@@ -119,6 +128,7 @@ public class FenceKnotEntity extends LeashFenceKnotEntity implements IEntityWith
         compound.putLong("AttachPos", this.getPos().asLong());
         compound.putLong("Partner", this.partner.asLong());
         compound.putBoolean("Primary", this.primary);
+        compound.putBoolean("LeadConsumed", this.leadConsumed);
     }
 
     @Override
@@ -127,18 +137,21 @@ public class FenceKnotEntity extends LeashFenceKnotEntity implements IEntityWith
         this.setPos(p.getX(), p.getY(), p.getZ());
         this.partner = BlockPos.of(compound.getLong("Partner"));
         this.primary = compound.getBoolean("Primary");
+        this.leadConsumed = compound.getBoolean("LeadConsumed");
     }
 
     @Override
     public void writeSpawnData(RegistryFriendlyByteBuf buffer) {
         buffer.writeLong(this.partner.asLong());
         buffer.writeBoolean(this.primary);
+        buffer.writeBoolean(this.leadConsumed);
     }
 
     @Override
     public void readSpawnData(RegistryFriendlyByteBuf buffer) {
         this.partner = BlockPos.of(buffer.readLong());
         this.primary = buffer.readBoolean();
+        this.leadConsumed = buffer.readBoolean();
     }
 
     @Override

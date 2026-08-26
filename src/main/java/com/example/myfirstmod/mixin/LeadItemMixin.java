@@ -72,9 +72,10 @@ public abstract class LeadItemMixin {
                 cir.setReturnValue(InteractionResult.SUCCESS);
                 cir.cancel();
             } else {
-                createRope(level, pending, pos);
+                boolean creative = player.getAbilities().instabuild;
+                createRope(level, pending, pos, !creative);
                 clearPending(player);
-                if (!context.getItemInHand().isEmpty()) {
+                if (!creative && !context.getItemInHand().isEmpty()) {
                     context.getItemInHand().shrink(1);
                 }
                 level.playSound(null, pos, SoundEvents.LEASH_KNOT_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
@@ -112,10 +113,10 @@ public abstract class LeadItemMixin {
         player.getPersistentData().remove(PENDING_KEY);
     }
 
-    private static void createRope(Level level, BlockPos from, BlockPos to) {
+    private static void createRope(Level level, BlockPos from, BlockPos to, boolean consumeLead) {
         // 第一根栅栏上的绳结为主(负责绘制绳索),第二根为辅;两者互相指向对方。
-        FenceKnotEntity a = new FenceKnotEntity(level, from, to, true);
-        FenceKnotEntity b = new FenceKnotEntity(level, to, from, false);
+        FenceKnotEntity a = new FenceKnotEntity(level, from, to, true, consumeLead);
+        FenceKnotEntity b = new FenceKnotEntity(level, to, from, false, consumeLead);
         level.addFreshEntity(a);
         level.addFreshEntity(b);
     }
