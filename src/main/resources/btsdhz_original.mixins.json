@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "package": "com.example.myfirstmod.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "SlabBlockMixin",
+    "BlockItemMixin",
+    "BucketMixin",
+    "StairBlockMixin",
+    "LeadItemMixin"
+  ],
+  "client": [
+  ],
+  "server": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

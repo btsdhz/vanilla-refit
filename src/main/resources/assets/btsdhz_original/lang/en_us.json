@@ -1,0 +1,14 @@
+{
+  "itemGroup.btsdhz_original": "Example Mod Tab",
+  "block.btsdhz_original.example_block": "Example Block",
+  "item.btsdhz_original.example_item": "Example Item",
+  "entity.btsdhz_original.fence_rope": "Fence Rope",
+
+  "btsdhz_original.configuration.title": "猴子的原版更改 Configs",
+  "btsdhz_original.configuration.section.btsdhz_original.common.toml": "猴子的原版更改 Configs",
+  "btsdhz_original.configuration.section.btsdhz_original.common.toml.title": "猴子的原版更改 Configs",
+  "btsdhz_original.configuration.items": "Item List",
+  "btsdhz_original.configuration.logDirtBlock": "Log Dirt Block",
+  "btsdhz_original.configuration.magicNumberIntroduction": "Magic Number Text",
+  "btsdhz_original.configuration.magicNumber": "Magic Number"
+}
