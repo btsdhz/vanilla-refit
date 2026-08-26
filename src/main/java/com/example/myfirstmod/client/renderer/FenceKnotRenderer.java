@@ -3,6 +3,8 @@ package com.example.myfirstmod.client.renderer;
 import com.example.myfirstmod.entity.FenceKnotEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import java.util.Map;
+import java.util.UUID;
 import net.minecraft.client.model.LeashKnotModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.LightTexture;
@@ -14,17 +16,17 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
 /**
- * 渲染栅栏上的绕绳结,并在“主绳结”上绘制两点间的悬链线拴绳。
+ * 渲染栅栏上的绕绳结,以及它连接的所有悬链线拴绳;处于待连接状态时还会渲染到玩家手部的拴绳。
  */
 public class FenceKnotRenderer extends EntityRenderer<FenceKnotEntity> {
     private static final double CATENARY_A = 3.0D;
     private static final int STEPS = 24;
-    /** 拴绳粗细(原版的 2 倍)。 */
     private static final float ROPE_THICKNESS = 0.05F;
     private static final float HALF_THICKNESS = ROPE_THICKNESS / 2.0F;
     private static final ResourceLocation KNOT_LOCATION =
@@ -48,12 +50,35 @@ public class FenceKnotRenderer extends EntityRenderer<FenceKnotEntity> {
         this.knotModel.renderToBuffer(poseStack, knotBuffer, packedLight, OverlayTexture.NO_OVERLAY);
         poseStack.popPose();
 
-        // 仅主绳结绘制连接另一根栅栏的悬链线。
-        if (entity.isPrimary() && entity.getPartner() != null) {
-            Vec3 start = entity.getRopeHoldPosition(partialTicks);
-            BlockPos partner = entity.getPartner();
-            Vec3 end = new Vec3(partner.getX() + 0.5, partner.getY() + 0.575, partner.getZ() + 0.5);
-            renderRope(entity, start, end, partialTicks, poseStack, buffer);
+        Vec3 self = entity.getRopeHoldPosition(partialTicks);
+
+        // 为每个伙伴绘制通往伙伴栅栏的悬链线(只由位置“较小”的一侧绘制,避免重复)。
+        for (Map.Entry<BlockPos, Boolean> entry : entity.getPartners().entrySet()) {
+            BlockPos partner = entry.getKey();
+            if (entity.getPos().compareTo(partner) < 0) {
+                Vec3 end = new Vec3(partner.getX() + 0.5, partner.getY() + 0.575, partner.getZ() + 0.5);
+                if (end.distanceToSqr(self) > 1.0E-6D) {
+                    renderRope(entity, self, end, partialTicks, poseStack, buffer);
+                }
+            }
+        }
+
+        // 待连接状态:从本绳结渲染一条拴绳到玩家手部。
+        UUID pending = entity.getPendingPlayer();
+        if (pending != null) {
+            Player target = null;
+            for (Player player : entity.level().players()) {
+                if (player.getUUID().equals(pending)) {
+                    target = player;
+                    break;
+                }
+            }
+            if (target != null) {
+                Vec3 hand = target.getRopeHoldPosition(partialTicks);
+                if (hand.distanceToSqr(self) > 1.0E-6D) {
+                    renderRope(entity, self, hand, partialTicks, poseStack, buffer);
+                }
+            }
         }
     }
 
@@ -120,6 +145,13 @@ public class FenceKnotRenderer extends EntityRenderer<FenceKnotEntity> {
             float shade = i % 2 == 0 ? 1.0F : 0.7F;
             addVertex(vc, m, cx[i] + perpV.x * HALF_THICKNESS, cy[i] + perpV.y * HALF_THICKNESS, cz[i] + perpV.z * HALF_THICKNESS, shade, lights[i]);
             addVertex(vc, m, cx[i] - perpV.x * HALF_THICKNESS, cy[i] - perpV.y * HALF_THICKNESS, cz[i] - perpV.z * HALF_THICKNESS, shade, lights[i]);
+        }
+        flushLeash(buffer);
+    }
+
+    private static void flushLeash(MultiBufferSource buffer) {
+        if (buffer instanceof MultiBufferSource.BufferSource bufferSource) {
+            bufferSource.endBatch(RenderType.leash());
         }
     }
 

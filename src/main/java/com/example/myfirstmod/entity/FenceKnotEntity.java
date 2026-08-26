@@ -1,19 +1,24 @@
 package com.example.myfirstmod.entity;
 
 import com.example.myfirstmod.ModEntities;
+import com.example.myfirstmod.util.FenceRopeLogic;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
-import net.minecraft.server.level.ServerEntity;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.decoration.LeashFenceKnotEntity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -23,42 +28,119 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.entity.IEntityWithComplexSpawn;
 
 /**
- * 位于一根栅栏上的绕绳结,与另一根栅栏上的伙伴绳结构成一条连接。
+ * 位于一根栅栏上的绕绳结,可同时挂多条拴绳(每个伙伴栅栏一条)。
  *
- * <p>它的判定框和原版拴绳结一致(放在栅栏上),可被玩家右键点击来解除整条连接并掉落拴绳。
- * 仅当 {@link #isPrimary()} 为 true 时才负责绘制两点间的悬链线,避免两个绳结重复绘制。</p>
+ * <p>判定框与原版拴绳结一致(放在栅栏上)。点击(无待连接状态)会取消该栅栏上的
+ * <b>所有</b>连接,并按“每条约消耗了一根拴绳”返还对应数量的拴绳(创造模式不返还)。
+ * 当玩家处于待连接状态时,点击此绳结表示继续追加一条连接,而不是解开。</p>
+ *
+ * <p>伙伴列表与待连接玩家通过实体数据同步到客户端,用于渲染多条悬链线与“待连接到手部”的拴绳。</p>
  */
-public class FenceKnotEntity extends LeashFenceKnotEntity implements IEntityWithComplexSpawn {
-    private BlockPos partner;
-    private boolean primary;
-    /** 创建时是否消耗了一根拴绳(生存为 true,创造为 false)。 */
-    private boolean leadConsumed;
+public class FenceKnotEntity extends LeashFenceKnotEntity {
+    private static final EntityDataAccessor<CompoundTag> DATA_PARTNERS =
+            SynchedEntityData.defineId(FenceKnotEntity.class, EntityDataSerializers.COMPOUND_TAG);
+    private static final EntityDataAccessor<Optional<UUID>> DATA_PENDING_PLAYER =
+            SynchedEntityData.defineId(FenceKnotEntity.class, EntityDataSerializers.OPTIONAL_UUID);
 
     public FenceKnotEntity(EntityType<? extends FenceKnotEntity> entityType, Level level) {
         super(entityType, level);
     }
 
-    public FenceKnotEntity(Level level, BlockPos pos, BlockPos partner, boolean primary, boolean leadConsumed) {
+    public FenceKnotEntity(Level level, BlockPos pos) {
         this(ModEntities.FENCE_KNOT.get(), level);
         this.setPos(pos.getX(), pos.getY(), pos.getZ());
-        this.partner = partner;
-        this.primary = primary;
-        this.leadConsumed = leadConsumed;
     }
 
-    public BlockPos getPartner() {
-        return this.partner;
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        builder.define(DATA_PARTNERS, serializePartners(Map.of()));
+        builder.define(DATA_PENDING_PLAYER, Optional.empty());
     }
 
-    public boolean isPrimary() {
-        return this.primary;
+    // ====== 伙伴连接(每条记录伙伴栅栏 -> 是否消耗过拴绳) ======
+
+    public Map<BlockPos, Boolean> getPartners() {
+        return deserializePartners(this.getEntityData().get(DATA_PARTNERS));
     }
 
-    public boolean isLeadConsumed() {
-        return this.leadConsumed;
+    public boolean hasPartners() {
+        return !this.getPartners().isEmpty();
+    }
+
+    public void setPartner(BlockPos partner, boolean consumed) {
+        Map<BlockPos, Boolean> partners = this.getPartners();
+        partners.put(partner, consumed);
+        this.getEntityData().set(DATA_PARTNERS, serializePartners(partners));
+    }
+
+    public boolean removePartner(BlockPos partner) {
+        Map<BlockPos, Boolean> partners = this.getPartners();
+        if (partners.remove(partner) == null) {
+            return false;
+        }
+        this.getEntityData().set(DATA_PARTNERS, serializePartners(partners));
+        return true;
+    }
+
+    private void clearPartners() {
+        this.getEntityData().set(DATA_PARTNERS, serializePartners(Map.of()));
+    }
+
+    // ====== 待连接玩家(用于客户端渲染“挂在手上”的拴绳) ======
+
+    public Optional<UUID> getPendingPlayerOpt() {
+        return this.getEntityData().get(DATA_PENDING_PLAYER);
+    }
+
+    public UUID getPendingPlayer() {
+        return this.getEntityData().get(DATA_PENDING_PLAYER).orElse(null);
+    }
+
+    public void setPendingPlayer(UUID uuid) {
+        this.getEntityData().set(DATA_PENDING_PLAYER, Optional.ofNullable(uuid));
+    }
+
+    // ====== 逻辑 ======
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (this.level().isClientSide || this.isRemoved()) {
+            return;
+        }
+        BlockPos selfPos = this.getPos();
+        if (!isFence(selfPos)) {
+            // 自己所在的栅栏被拆:断开所有连接并移除本结。
+            // 返还拴绳由仍存在的伙伴结负责(它们会检测到本结栅栏消失)。
+            UUID pending = this.getPendingPlayer();
+            if (pending != null) {
+                for (Player player : this.level().players()) {
+                    if (player.getUUID().equals(pending)) {
+                        FenceRopeLogic.clearPending(player);
+                        break;
+                    }
+                }
+            }
+            this.clearPartners();
+            this.discard();
+            return;
+        }
+        // 清理伙伴栅栏已被拆除的连接,并按每条消耗返还拴绳。
+        for (Map.Entry<BlockPos, Boolean> entry : new ArrayList<>(this.getPartners().entrySet())) {
+            BlockPos partner = entry.getKey();
+            if (!isFence(partner)) {
+                this.removePartner(partner);
+                FenceKnotEntity partnerKnot = FenceRopeLogic.findKnot(this.level(), partner);
+                if (partnerKnot != null) {
+                    partnerKnot.removePartner(selfPos);
+                }
+                if (entry.getValue()) {
+                    this.dropLead();
+                }
+            }
+        }
     }
 
     @Override
@@ -68,25 +150,36 @@ public class FenceKnotEntity extends LeashFenceKnotEntity implements IEntityWith
 
     @Override
     public AABB getBoundingBoxForCulling() {
-        if (this.partner == null) {
-            return super.getBoundingBoxForCulling();
+        Vec3 self = this.getRopeHoldPosition(0.0F);
+        double minX = self.x, minY = self.y, minZ = self.z;
+        double maxX = self.x, maxY = self.y, maxZ = self.z;
+        for (BlockPos partner : this.getPartners().keySet()) {
+            double px = partner.getX() + 0.5;
+            double py = partner.getY() + 0.575;
+            double pz = partner.getZ() + 0.5;
+            minX = Math.min(minX, px);
+            minY = Math.min(minY, py);
+            minZ = Math.min(minZ, pz);
+            maxX = Math.max(maxX, px);
+            maxY = Math.max(maxY, py);
+            maxZ = Math.max(maxZ, pz);
         }
-        Vec3 a = this.getRopeHoldPosition(0.0F);
-        Vec3 b = new Vec3(this.partner.getX() + 0.5, this.partner.getY() + 0.575, this.partner.getZ() + 0.5);
-        return new AABB(
-                Math.min(a.x, b.x) - 0.5, Math.min(a.y, b.y) - 0.5, Math.min(a.z, b.z) - 0.5,
-                Math.max(a.x, b.x) + 0.5, Math.max(a.y, b.y) + 0.5, Math.max(a.z, b.z) + 0.5
-        );
-    }
-
-    @Override
-    public void tick() {
-        super.tick();
-        if (!this.level().isClientSide && !this.isRemoved()
-                && this.partner != null
-                && !this.level().getBlockState(this.partner).is(BlockTags.FENCES)) {
-            this.cancelConnection();
+        UUID pending = this.getPendingPlayer();
+        if (pending != null) {
+            for (Player player : this.level().players()) {
+                if (player.getUUID().equals(pending)) {
+                    Vec3 hand = player.getRopeHoldPosition(0.0F);
+                    minX = Math.min(minX, hand.x);
+                    minY = Math.min(minY, hand.y);
+                    minZ = Math.min(minZ, hand.z);
+                    maxX = Math.max(maxX, hand.x);
+                    maxY = Math.max(maxY, hand.y);
+                    maxZ = Math.max(maxZ, hand.z);
+                    break;
+                }
+            }
         }
+        return new AABB(minX - 0.5, minY - 0.5, minZ - 0.5, maxX + 0.5, maxY + 0.5, maxZ + 0.5);
     }
 
     @Override
@@ -94,69 +187,112 @@ public class FenceKnotEntity extends LeashFenceKnotEntity implements IEntityWith
         if (this.level().isClientSide) {
             return InteractionResult.SUCCESS;
         }
-        this.cancelConnection();
+        // 玩家正牵着动物时,交由原版逻辑(把动物拴到/解开本结)。
+        if (FenceRopeLogic.hasPlayerLeashedMobs(player, this.level(), this.getPos())) {
+            return super.interact(player, hand);
+        }
+
+        BlockPos pending = FenceRopeLogic.getPending(player);
+        if (pending != null) {
+            if (pending.equals(this.getPos())) {
+                // 再次点击待连接结:取消建立状态。
+                FenceRopeLogic.clearPending(player);
+                this.setPendingPlayer(null);
+                if (!this.hasPartners()) {
+                    this.discard();
+                }
+                return InteractionResult.CONSUME;
+            }
+            // 处于待连接状态:追加一条到本栅栏的连接,不解开。
+            boolean creative = player.getAbilities().instabuild;
+            FenceRopeLogic.connect(this.level(), pending, this.getPos(), !creative);
+            FenceRopeLogic.clearPending(player);
+            if (!creative && player.getItemInHand(hand).is(Items.LEAD)) {
+                player.getItemInHand(hand).shrink(1);
+            }
+            this.level().playSound(null, this.blockPosition(), SoundEvents.LEASH_KNOT_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
+            return InteractionResult.CONSUME;
+        }
+
+        // 没有待连接状态:取消本结上的全部连接。
+        this.cancelAll();
         return InteractionResult.CONSUME;
     }
 
-    private void cancelConnection() {
+    /** 取消本结上的全部连接,按每条消耗的拴绳返还,并移除本结。 */
+    private void cancelAll() {
         if (this.level().isClientSide) {
             return;
         }
-        if (this.partner != null) {
-            AABB search = new AABB(this.partner).inflate(1.0);
-            for (FenceKnotEntity other : this.level().getEntitiesOfClass(FenceKnotEntity.class, search)) {
-                if (other != this && other.getPos().equals(this.partner)) {
-                    other.discard();
+        for (Map.Entry<BlockPos, Boolean> entry : new ArrayList<>(this.getPartners().entrySet())) {
+            BlockPos partner = entry.getKey();
+            boolean consumed = entry.getValue();
+            FenceKnotEntity partnerKnot = FenceRopeLogic.findKnot(this.level(), partner);
+            if (partnerKnot != null) {
+                partnerKnot.removePartner(this.getPos());
+                if (!partnerKnot.hasPartners() && partnerKnot.getPendingPlayer() == null) {
+                    partnerKnot.discard();
                 }
             }
+            if (consumed) {
+                this.dropLead();
+            }
         }
-        this.level().playSound(null, this.blockPosition(), SoundEvents.LEASH_KNOT_BREAK, SoundSource.BLOCKS, 1.0F, 1.0F);
-        // 只有生存模式创建(消耗过拴绳)才返还;创造模式不返还,与原版一致。
-        if (this.leadConsumed) {
-            // 掉在栅栏桩的“北侧”空气处(相对绳结中心向北 0.25 格),避免与栅栏重合被弹飞。
-            BlockPos p = this.getPos();
-            ItemEntity lead = new ItemEntity(this.level(), p.getX() + 0.5, p.getY() + 0.45, p.getZ() + 0.25, new ItemStack(Items.LEAD));
-            lead.setDefaultPickUpDelay();
-            this.level().addFreshEntity(lead);
-        }
+        this.clearPartners();
         this.discard();
+    }
+
+    private void dropLead() {
+        BlockPos p = this.getPos();
+        ItemEntity lead = new ItemEntity(this.level(), p.getX() + 0.5, p.getY() + 0.45, p.getZ() + 0.25, new ItemStack(Items.LEAD));
+        lead.setDefaultPickUpDelay();
+        this.level().addFreshEntity(lead);
+    }
+
+    private boolean isFence(BlockPos pos) {
+        return pos != null && this.level().getBlockState(pos).is(BlockTags.FENCES);
+    }
+
+    // ====== 持久化与同步 ======
+
+    private static CompoundTag serializePartners(Map<BlockPos, Boolean> partners) {
+        CompoundTag tag = new CompoundTag();
+        ListTag list = new ListTag();
+        for (Map.Entry<BlockPos, Boolean> entry : partners.entrySet()) {
+            CompoundTag c = new CompoundTag();
+            c.putLong("P", entry.getKey().asLong());
+            c.putBoolean("C", entry.getValue());
+            list.add(c);
+        }
+        tag.put("L", list);
+        return tag;
+    }
+
+    private static Map<BlockPos, Boolean> deserializePartners(CompoundTag tag) {
+        Map<BlockPos, Boolean> partners = new LinkedHashMap<>();
+        ListTag list = tag.getList("L", 10);
+        for (int i = 0; i < list.size(); i++) {
+            CompoundTag c = list.getCompound(i);
+            partners.put(BlockPos.of(c.getLong("P")), c.getBoolean("C"));
+        }
+        return partners;
     }
 
     @Override
     public void addAdditionalSaveData(CompoundTag compound) {
-        // LeashFenceKnotEntity 原版为空实现,须自行保存挂靠位置、伙伴与主/从标记。
+        // LeashFenceKnotEntity 原版为空实现,须自行保存挂靠位置、伙伴与待连接玩家。
         compound.putLong("AttachPos", this.getPos().asLong());
-        compound.putLong("Partner", this.partner.asLong());
-        compound.putBoolean("Primary", this.primary);
-        compound.putBoolean("LeadConsumed", this.leadConsumed);
+        compound.put("Partners", serializePartners(this.getPartners()));
+        compound.putString("PendingPlayer", this.getPendingPlayerOpt().map(UUID::toString).orElse(""));
     }
 
     @Override
     public void readAdditionalSaveData(CompoundTag compound) {
         BlockPos p = BlockPos.of(compound.getLong("AttachPos"));
         this.setPos(p.getX(), p.getY(), p.getZ());
-        this.partner = BlockPos.of(compound.getLong("Partner"));
-        this.primary = compound.getBoolean("Primary");
-        this.leadConsumed = compound.getBoolean("LeadConsumed");
-    }
-
-    @Override
-    public void writeSpawnData(RegistryFriendlyByteBuf buffer) {
-        buffer.writeLong(this.partner.asLong());
-        buffer.writeBoolean(this.primary);
-        buffer.writeBoolean(this.leadConsumed);
-    }
-
-    @Override
-    public void readSpawnData(RegistryFriendlyByteBuf buffer) {
-        this.partner = BlockPos.of(buffer.readLong());
-        this.primary = buffer.readBoolean();
-        this.leadConsumed = buffer.readBoolean();
-    }
-
-    @Override
-    public Packet<ClientGamePacketListener> getAddEntityPacket(ServerEntity entity) {
-        return new ClientboundAddEntityPacket(this, entity);
+        this.getEntityData().set(DATA_PARTNERS, compound.getCompound("Partners"));
+        String pending = compound.getString("PendingPlayer");
+        this.getEntityData().set(DATA_PENDING_PLAYER, pending.isEmpty() ? Optional.empty() : Optional.of(UUID.fromString(pending)));
     }
 
     @Override
