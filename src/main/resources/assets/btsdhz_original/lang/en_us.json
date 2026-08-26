@@ -5,6 +5,7 @@
   "entity.btsdhz_original.fence_knot": "Fence Rope",
   "key.categories.btsdhz_original": "Monkey & Original Changes",
   "key.btsdhz_original.crawl": "Crawl (Hold)",
+  "key.btsdhz_original.sit": "Sit (Toggle)",
 
   "btsdhz_original.configuration.title": "猴子的原版更改 Configs",
   "btsdhz_original.configuration.section.btsdhz_original.common.toml": "猴子的原版更改 Configs",

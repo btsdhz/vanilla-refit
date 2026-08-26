@@ -3,11 +3,14 @@ package com.example.myfirstmod.client;
 import com.example.myfirstmod.BtsdhzOriginal;
 import com.example.myfirstmod.ModEntities;
 import com.example.myfirstmod.client.renderer.FenceKnotRenderer;
+import com.example.myfirstmod.client.renderer.SitEntityRenderer;
+import com.example.myfirstmod.network.SitTogglePayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Pose;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 
@@ -21,6 +24,7 @@ public final class ModClientEvents {
     @SubscribeEvent
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(ModEntities.FENCE_KNOT.get(), FenceKnotRenderer::new);
+        event.registerEntityRenderer(ModEntities.SIT.get(), SitEntityRenderer::new);
     }
 
     @SubscribeEvent
@@ -28,6 +32,10 @@ public final class ModClientEvents {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) {
             return;
+        }
+
+        if (mc.screen == null && ModKeyBindings.consumeSit()) {
+            PacketDistributor.sendToServer(new SitTogglePayload());
         }
 
         boolean wantCrawl = ModKeyBindings.isCrawlDown()

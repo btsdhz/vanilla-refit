@@ -3,5 +3,6 @@
   "item.btsdhz_original.smooth_stone_stairs": "平滑石楼梯",
   "entity.btsdhz_original.fence_knot": "拴绳",
   "key.categories.btsdhz_original": "猴子与原版更改",
-  "key.btsdhz_original.crawl": "爬行(按住)"
+  "key.btsdhz_original.crawl": "爬行(按住)",
+  "key.btsdhz_original.sit": "坐下(切换)"
 }

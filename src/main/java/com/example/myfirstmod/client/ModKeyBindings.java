@@ -18,6 +18,13 @@ public final class ModKeyBindings {
             KEY_CATEGORY
     );
 
+    private static final KeyMapping SIT_KEY = new KeyMapping(
+            "key.btsdhz_original.sit",
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_Z,
+            KEY_CATEGORY
+    );
+
     private ModKeyBindings() {
     }
 
@@ -27,5 +34,9 @@ public final class ModKeyBindings {
 
     public static boolean isCrawlDown() {
         return CRAWL_KEY.isDown();
+    }
+
+    public static boolean consumeSit() {
+        return SIT_KEY.consumeClick();
     }
 }

@@ -1,6 +1,7 @@
 package com.example.myfirstmod;
 
 import com.example.myfirstmod.entity.FenceKnotEntity;
+import com.example.myfirstmod.entity.SitEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -18,4 +19,13 @@ public class ModEntities {
                             .clientTrackingRange(10)
                             .updateInterval(Integer.MAX_VALUE)
                             .build("fence_knot"));
+
+    public static final DeferredHolder<EntityType<?>, EntityType<SitEntity>> SIT =
+            ENTITY_TYPES.register("sit",
+                    () -> EntityType.Builder.<SitEntity>of(SitEntity::new, MobCategory.MISC)
+                            .sized(0.001F, 0.001F)
+                            .noSave()
+                            .clientTrackingRange(10)
+                            .updateInterval(Integer.MAX_VALUE)
+                            .build("sit"));
 }
