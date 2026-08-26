@@ -1,6 +1,6 @@
 package com.example.myfirstmod.mixin;
 
-import com.example.myfirstmod.entity.FenceRopeEntity;
+import com.example.myfirstmod.entity.FenceKnotEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvents;
@@ -28,7 +28,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  */
 @Mixin(LeadItem.class)
 public abstract class LeadItemMixin {
-    private static final String PENDING_KEY = "FenceRopePendingPos";
+    private static final String PENDING_KEY = "FenceKnotPendingPos";
 
     @Inject(method = "useOn", at = @At("HEAD"), cancellable = true, remap = false)
     private void btsdhz_original$useOn(UseOnContext context, CallbackInfoReturnable<InteractionResult> cir) {
@@ -113,7 +113,10 @@ public abstract class LeadItemMixin {
     }
 
     private static void createRope(Level level, BlockPos from, BlockPos to) {
-        FenceRopeEntity rope = new FenceRopeEntity(level, from, to);
-        level.addFreshEntity(rope);
+        // 第一根栅栏上的绳结为主(负责绘制绳索),第二根为辅;两者互相指向对方。
+        FenceKnotEntity a = new FenceKnotEntity(level, from, to, true);
+        FenceKnotEntity b = new FenceKnotEntity(level, to, from, false);
+        level.addFreshEntity(a);
+        level.addFreshEntity(b);
     }
 }

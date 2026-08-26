@@ -2,7 +2,7 @@ package com.example.myfirstmod.client;
 
 import com.example.myfirstmod.BtsdhzOriginal;
 import com.example.myfirstmod.ModEntities;
-import com.example.myfirstmod.client.renderer.FenceRopeRenderer;
+import com.example.myfirstmod.client.renderer.FenceKnotRenderer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -15,6 +15,6 @@ public final class ModClientEvents {
 
     @SubscribeEvent
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerEntityRenderer(ModEntities.FENCE_ROPE.get(), FenceRopeRenderer::new);
+        event.registerEntityRenderer(ModEntities.FENCE_KNOT.get(), FenceKnotRenderer::new);
     }
 }

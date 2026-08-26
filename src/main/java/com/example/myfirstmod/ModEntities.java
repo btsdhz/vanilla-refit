@@ -1,6 +1,6 @@
 package com.example.myfirstmod;
 
-import com.example.myfirstmod.entity.FenceRopeEntity;
+import com.example.myfirstmod.entity.FenceKnotEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -11,11 +11,11 @@ public class ModEntities {
     public static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
             DeferredRegister.create(Registries.ENTITY_TYPE, BtsdhzOriginal.MOD_ID);
 
-    public static final DeferredHolder<EntityType<?>, EntityType<FenceRopeEntity>> FENCE_ROPE =
-            ENTITY_TYPES.register("fence_rope",
-                    () -> EntityType.Builder.<FenceRopeEntity>of(FenceRopeEntity::new, MobCategory.MISC)
-                            .sized(0.25F, 0.25F)
+    public static final DeferredHolder<EntityType<?>, EntityType<FenceKnotEntity>> FENCE_KNOT =
+            ENTITY_TYPES.register("fence_knot",
+                    () -> EntityType.Builder.<FenceKnotEntity>of(FenceKnotEntity::new, MobCategory.MISC)
+                            .sized(0.375F, 0.5F)
                             .clientTrackingRange(10)
                             .updateInterval(Integer.MAX_VALUE)
-                            .build("fence_rope"));
+                            .build("fence_knot"));
 }
