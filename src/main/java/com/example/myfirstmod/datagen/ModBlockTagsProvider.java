@@ -14,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class ModBlockTagsProvider extends BlockTagsProvider {
 
-    // 原版所有完整的玻璃类方块
+    // 原版所有玻璃类方块(完整方块 + 玻璃板)
     private static final Block[] GLASS_BLOCKS = {
             Blocks.GLASS,
             Blocks.TINTED_GLASS,
@@ -33,7 +33,24 @@ public class ModBlockTagsProvider extends BlockTagsProvider {
             Blocks.BROWN_STAINED_GLASS,
             Blocks.GREEN_STAINED_GLASS,
             Blocks.RED_STAINED_GLASS,
-            Blocks.BLACK_STAINED_GLASS
+            Blocks.BLACK_STAINED_GLASS,
+            Blocks.GLASS_PANE,
+            Blocks.WHITE_STAINED_GLASS_PANE,
+            Blocks.ORANGE_STAINED_GLASS_PANE,
+            Blocks.MAGENTA_STAINED_GLASS_PANE,
+            Blocks.LIGHT_BLUE_STAINED_GLASS_PANE,
+            Blocks.YELLOW_STAINED_GLASS_PANE,
+            Blocks.LIME_STAINED_GLASS_PANE,
+            Blocks.PINK_STAINED_GLASS_PANE,
+            Blocks.GRAY_STAINED_GLASS_PANE,
+            Blocks.LIGHT_GRAY_STAINED_GLASS_PANE,
+            Blocks.CYAN_STAINED_GLASS_PANE,
+            Blocks.PURPLE_STAINED_GLASS_PANE,
+            Blocks.BLUE_STAINED_GLASS_PANE,
+            Blocks.BROWN_STAINED_GLASS_PANE,
+            Blocks.GREEN_STAINED_GLASS_PANE,
+            Blocks.RED_STAINED_GLASS_PANE,
+            Blocks.BLACK_STAINED_GLASS_PANE
     };
 
     public ModBlockTagsProvider(PackOutput output, CompletableFuture<HolderLookup.Provider> lookupProvider, @Nullable ExistingFileHelper existingFileHelper) {
