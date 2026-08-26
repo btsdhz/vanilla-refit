@@ -16,6 +16,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.decoration.LeashFenceKnotEntity;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -103,7 +104,12 @@ public class FenceKnotEntity extends LeashFenceKnotEntity implements IEntityWith
             }
         }
         this.level().playSound(null, this.blockPosition(), SoundEvents.LEASH_KNOT_BREAK, SoundSource.BLOCKS, 1.0F, 1.0F);
-        this.spawnAtLocation(new ItemStack(Items.LEAD));
+        // 把拴绳掉在栅栏桩的“北侧”空气处(相对绳结中心向北 0.25 格),
+        // 避免与栅栏方块/栅栏桩重合而被碰撞弹飞。
+        BlockPos p = this.getPos();
+        ItemEntity lead = new ItemEntity(this.level(), p.getX() + 0.5, p.getY() + 0.45, p.getZ() + 0.25, new ItemStack(Items.LEAD));
+        lead.setDefaultPickUpDelay();
+        this.level().addFreshEntity(lead);
         this.discard();
     }
 
