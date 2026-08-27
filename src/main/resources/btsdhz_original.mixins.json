@@ -10,6 +10,7 @@
     "BlockOnSlabStateMixin",
     "TorchOnSlabMixin",
     "LanternOnSlabMixin",
+    "BlockStateOnSlabMixin",
     "LeadItemMixin",
     "AnvilMenuMixin",
     "PlayerSitMixin",
