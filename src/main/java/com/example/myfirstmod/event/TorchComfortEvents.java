@@ -1,17 +1,9 @@
 package com.example.myfirstmod.event;
 
-import com.example.myfirstmod.util.ModBlockStateProperties;
-import com.example.myfirstmod.util.VerticalSlabMode;
+import com.example.myfirstmod.util.SlabSupport;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.LanternBlock;
-import net.minecraft.world.level.block.SlabBlock;
-import net.minecraft.world.level.block.TorchBlock;
-import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.SlabType;
+import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
@@ -38,7 +30,8 @@ public class TorchComfortEvents {
 
         BlockPos pos = event.getPos();
         BlockState state = event.getLevel().getBlockState(pos);
-        if (!isBottomSlabWithLoweredTorchAbove(event.getLevel(), pos, state)) {
+        if (!SlabSupport.isBottomSlab(event.getLevel(), pos)
+                || !SlabSupport.isLoweredTorchOrLanternAbove(event.getLevel(), pos)) {
             return;
         }
 
@@ -46,22 +39,5 @@ public class TorchComfortEvents {
         event.setCanceled(true);
         boolean creative = event.getEntity() instanceof Player p && p.getAbilities().instabuild;
         event.getLevel().destroyBlock(pos.above(), !creative);
-    }
-
-    private static boolean isBottomSlabWithLoweredTorchAbove(Level level, BlockPos pos, BlockState state) {
-        if (!(state.getBlock() instanceof SlabBlock)
-                || !state.hasProperty(ModBlockStateProperties.MODE)
-                || state.getValue(ModBlockStateProperties.MODE) != VerticalSlabMode.SLAB
-                || !state.hasProperty(SlabBlock.TYPE)
-                || state.getValue(SlabBlock.TYPE) != SlabType.BOTTOM) {
-            return false;
-        }
-        BlockState above = level.getBlockState(pos.above());
-        Block b = above.getBlock();
-        boolean isTorch = b instanceof TorchBlock && !(b instanceof WallTorchBlock);
-        boolean isLantern = b instanceof LanternBlock;
-        return (isTorch || isLantern)
-                && above.hasProperty(ModBlockStateProperties.ON_SLAB)
-                && above.getValue(ModBlockStateProperties.ON_SLAB);
     }
 }

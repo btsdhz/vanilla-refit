@@ -56,7 +56,7 @@ public abstract class SlabBlockMixin {
      * 坐标：X/Z 6~10（火把立柱），Y 8~16（台阶格上半格）。
      */
     @Unique
-    private static final VoxelShape COMFORT_TORCH = Block.box(6.0, 8.0, 6.0, 10.0, 16.0, 10.0);
+    private static final VoxelShape COMFORT_TORCH = Block.box(6.0, 8.0, 6.0, 10.0, 18.0, 10.0);
 
     /**
      * 灯笼舒适框：上方是下移灯笼时使用。灯笼比火把宽（主体 X/Z 5~11、颈部 6~10），

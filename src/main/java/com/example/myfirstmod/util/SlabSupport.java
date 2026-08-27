@@ -2,7 +2,11 @@ package com.example.myfirstmod.util;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.LanternBlock;
 import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.TorchBlock;
+import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.SlabType;
 
@@ -29,5 +33,18 @@ public final class SlabSupport {
                 && state.getValue(ModBlockStateProperties.MODE) == VerticalSlabMode.SLAB
                 && state.hasProperty(SlabBlock.TYPE)
                 && state.getValue(SlabBlock.TYPE) == SlabType.BOTTOM;
+    }
+
+    /**
+     * @return pos 上方的方块是否为“下移（ON_SLAB=true）的普通火把/灵魂火把/灯笼/灵魂灯笼”
+     */
+    public static boolean isLoweredTorchOrLanternAbove(BlockGetter level, BlockPos pos) {
+        BlockState above = level.getBlockState(pos.above());
+        Block b = above.getBlock();
+        boolean isTorch = b instanceof TorchBlock && !(b instanceof WallTorchBlock);
+        boolean isLantern = b instanceof LanternBlock;
+        return (isTorch || isLantern)
+                && above.hasProperty(ModBlockStateProperties.ON_SLAB)
+                && above.getValue(ModBlockStateProperties.ON_SLAB);
     }
 }
