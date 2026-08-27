@@ -1,6 +1,7 @@
 package com.example.myfirstmod;
 
 import com.example.myfirstmod.client.ModKeyBindings;
+import com.example.myfirstmod.client.SlabbedModelEvents;
 import com.example.myfirstmod.config.BtsdhzConfig;
 import com.example.myfirstmod.network.SitTogglePayload;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -21,6 +22,8 @@ public class BtsdhzOriginal {
         System.out.println("猴子的原版更改模组已加载！");
         // 注册配置文件（默认开启的火把/灯笼等下台阶贴合功能开关）
         modContainer.registerConfig(ModConfig.Type.COMMON, BtsdhzConfig.SPEC);
+        // 客户端：把 btsdhz_on_slab=true 的方块模型包装成下移半格（支持继承原版类的火把/灯笼）
+        modEventBus.addListener(SlabbedModelEvents::onModifyBakingResult);
         ModBlocks.BLOCKS.register(modEventBus);
         ModBlocks.ITEMS.register(modEventBus);
         ModEntities.ENTITY_TYPES.register(modEventBus);

@@ -4,7 +4,7 @@
       "model": "minecraft:block/soul_torch"
     },
     "btsdhz_on_slab=true": {
-      "model": "btsdhz_original:block/soul_torch_on_slab"
+      "model": "minecraft:block/soul_torch"
     }
   }
 }

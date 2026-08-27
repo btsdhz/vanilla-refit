@@ -4,7 +4,7 @@
       "model": "minecraft:block/lantern"
     },
     "hanging=false,btsdhz_on_slab=true": {
-      "model": "btsdhz_original:block/lantern_on_slab"
+      "model": "minecraft:block/lantern"
     },
     "hanging=true,btsdhz_on_slab=false": {
       "model": "minecraft:block/lantern_hanging"
