@@ -65,7 +65,7 @@ public class ModBlockTagsProvider extends BlockTagsProvider {
         this.tag(BlockTags.MINEABLE_WITH_AXE).add(GLASS_BLOCKS);
 
         // 可放在普通下半台阶上并下移贴齐的火把类 / 灯笼类方块
-        this.tag(ModTags.ON_SLAB_TORCH).add(Blocks.TORCH, Blocks.SOUL_TORCH);
+        this.tag(ModTags.ON_SLAB_TORCH).add(Blocks.TORCH, Blocks.SOUL_TORCH, Blocks.REDSTONE_TORCH);
         this.tag(ModTags.ON_SLAB_LANTERN).add(Blocks.LANTERN, Blocks.SOUL_LANTERN);
     }
 }

@@ -5,6 +5,7 @@ import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.SlabSupport;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.RedstoneTorchBlock;
 import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -36,7 +37,8 @@ public abstract class BlockOnSlabStateMixin {
     // 放置时，根据下方方块是否为下台阶，设置 ON_SLAB
     @Inject(method = "getStateForPlacement", at = @At("RETURN"), cancellable = true, remap = false)
     private void btsdhz_original$torchOnPlacement(BlockPlaceContext context, CallbackInfoReturnable<BlockState> cir) {
-        if (!((Object)this instanceof TorchBlock) || ((Object)this instanceof WallTorchBlock)) {
+        if (!(((Object)this instanceof TorchBlock && !((Object)this instanceof WallTorchBlock))
+                || (Object)this instanceof RedstoneTorchBlock)) {
             return;
         }
         BlockState state = cir.getReturnValue();
