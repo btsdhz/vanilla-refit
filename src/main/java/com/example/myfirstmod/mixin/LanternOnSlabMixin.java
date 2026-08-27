@@ -2,6 +2,7 @@ package com.example.myfirstmod.mixin;
 
 import com.example.myfirstmod.config.BtsdhzConfig;
 import com.example.myfirstmod.util.ModBlockStateProperties;
+import com.example.myfirstmod.util.ModTags;
 import com.example.myfirstmod.util.SlabSupport;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -57,7 +58,8 @@ public abstract class LanternOnSlabMixin {
     @Inject(method = "canSurvive", at = @At("HEAD"), cancellable = true, remap = false)
     private void btsdhz_original$canSurvive(BlockState state, LevelReader level, BlockPos pos,
                                             CallbackInfoReturnable<Boolean> cir) {
-        if (!state.getValue(LanternBlock.HANGING)
+        if (state.is(ModTags.ON_SLAB_LANTERN)
+                && !state.getValue(LanternBlock.HANGING)
                 && BtsdhzConfig.TORCH_LANTERN_ON_SLAB.get()
                 && SlabSupport.isBottomSlab(level, pos.below())
                 && !SlabSupport.isLavaSlab(level, pos.below())) {

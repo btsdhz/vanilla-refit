@@ -1,6 +1,7 @@
 package com.example.myfirstmod.datagen;
 
 import com.example.myfirstmod.BtsdhzOriginal;
+import com.example.myfirstmod.util.ModTags;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.tags.BlockTags;
@@ -62,5 +63,9 @@ public class ModBlockTagsProvider extends BlockTagsProvider {
         // 让玻璃类方块能被镐子和斧子加速挖掘
         this.tag(BlockTags.MINEABLE_WITH_PICKAXE).add(GLASS_BLOCKS);
         this.tag(BlockTags.MINEABLE_WITH_AXE).add(GLASS_BLOCKS);
+
+        // 可放在普通下半台阶上并下移贴齐的火把类 / 灯笼类方块
+        this.tag(ModTags.ON_SLAB_TORCH).add(Blocks.TORCH, Blocks.SOUL_TORCH);
+        this.tag(ModTags.ON_SLAB_LANTERN).add(Blocks.LANTERN, Blocks.SOUL_LANTERN);
     }
 }

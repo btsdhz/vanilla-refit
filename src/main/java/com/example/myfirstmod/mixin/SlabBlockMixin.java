@@ -2,6 +2,7 @@ package com.example.myfirstmod.mixin;
 
 import com.example.myfirstmod.util.FluidType;
 import com.example.myfirstmod.util.ModBlockStateProperties;
+import com.example.myfirstmod.util.ModTags;
 import com.example.myfirstmod.util.VerticalSlabMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -11,10 +12,7 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.LanternBlock;
 import net.minecraft.world.level.block.SlabBlock;
-import net.minecraft.world.level.block.TorchBlock;
-import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -178,7 +176,7 @@ public abstract class SlabBlockMixin {
                 BlockState above = getLoweredTorchOrLantern(level, pos);
                 if (above != null) {
                     // 普通下半台阶 + 上方下移火把/灯笼：拾取形状并入对应舒适框
-                    boolean lantern = above.getBlock() instanceof LanternBlock;
+                    boolean lantern = above.is(ModTags.ON_SLAB_LANTERN);
                     cir.setReturnValue(Shapes.or(cir.getReturnValue(),
                             lantern ? COMFORT_LANTERN : COMFORT_TORCH));
                 }
@@ -191,9 +189,8 @@ public abstract class SlabBlockMixin {
     @Unique
     private static BlockState getLoweredTorchOrLantern(BlockGetter level, BlockPos pos) {
         BlockState above = level.getBlockState(pos.above());
-        Block b = above.getBlock();
-        boolean isTorch = b instanceof TorchBlock && !(b instanceof WallTorchBlock);
-        boolean isLantern = b instanceof LanternBlock;
+        boolean isTorch = above.is(ModTags.ON_SLAB_TORCH);
+        boolean isLantern = above.is(ModTags.ON_SLAB_LANTERN);
         if ((isTorch || isLantern)
                 && above.hasProperty(ModBlockStateProperties.ON_SLAB)
                 && above.getValue(ModBlockStateProperties.ON_SLAB)) {

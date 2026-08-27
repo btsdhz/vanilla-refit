@@ -2,13 +2,13 @@ package com.example.myfirstmod.mixin;
 
 import com.example.myfirstmod.config.BtsdhzConfig;
 import com.example.myfirstmod.util.ModBlockStateProperties;
+import com.example.myfirstmod.util.ModTags;
 import com.example.myfirstmod.util.SlabSupport;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.BaseTorchBlock;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -36,7 +36,7 @@ public abstract class TorchOnSlabMixin {
     @Inject(method = "canSurvive", at = @At("HEAD"), cancellable = true, remap = false)
     private void btsdhz_original$canSurvive(BlockState state, LevelReader level, BlockPos pos,
                                             CallbackInfoReturnable<Boolean> cir) {
-        if ((Object)this instanceof TorchBlock
+        if (state.is(ModTags.ON_SLAB_TORCH)
                 && BtsdhzConfig.TORCH_LANTERN_ON_SLAB.get()
                 && SlabSupport.isBottomSlab(level, pos.below())
                 && !SlabSupport.isLavaSlab(level, pos.below())) {
