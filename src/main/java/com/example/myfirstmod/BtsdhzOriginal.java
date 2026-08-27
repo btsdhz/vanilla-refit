@@ -1,11 +1,14 @@
 package com.example.myfirstmod;
 
 import com.example.myfirstmod.client.ModKeyBindings;
+import com.example.myfirstmod.config.BtsdhzConfig;
 import com.example.myfirstmod.network.SitTogglePayload;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -14,8 +17,10 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 public class BtsdhzOriginal {
     public static final String MOD_ID = "btsdhz_original";
 
-    public BtsdhzOriginal(IEventBus modEventBus) {
+    public BtsdhzOriginal(IEventBus modEventBus, ModContainer modContainer) {
         System.out.println("猴子的原版更改模组已加载！");
+        // 注册配置文件（默认开启的火把/灯笼等下台阶贴合功能开关）
+        modContainer.registerConfig(ModConfig.Type.COMMON, BtsdhzConfig.SPEC);
         ModBlocks.BLOCKS.register(modEventBus);
         ModBlocks.ITEMS.register(modEventBus);
         ModEntities.ENTITY_TYPES.register(modEventBus);

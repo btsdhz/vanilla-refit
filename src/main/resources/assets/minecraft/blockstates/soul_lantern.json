@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "hanging=false,btsdhz_on_slab=false": {
+      "model": "minecraft:block/soul_lantern"
+    },
+    "hanging=false,btsdhz_on_slab=true": {
+      "model": "btsdhz_original:block/soul_lantern_on_slab"
+    },
+    "hanging=true,btsdhz_on_slab=false": {
+      "model": "minecraft:block/soul_lantern_hanging"
+    },
+    "hanging=true,btsdhz_on_slab=true": {
+      "model": "minecraft:block/soul_lantern_hanging"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "hanging=false,btsdhz_on_slab=false": {
+      "model": "minecraft:block/lantern"
+    },
+    "hanging=false,btsdhz_on_slab=true": {
+      "model": "btsdhz_original:block/lantern_on_slab"
+    },
+    "hanging=true,btsdhz_on_slab=false": {
+      "model": "minecraft:block/lantern_hanging"
+    },
+    "hanging=true,btsdhz_on_slab=true": {
+      "model": "minecraft:block/lantern_hanging"
+    }
+  }
+}
