@@ -2,19 +2,14 @@ package com.example.myfirstmod.mixin;
 
 import com.example.myfirstmod.config.BtsdhzConfig;
 import com.example.myfirstmod.util.ModBlockStateProperties;
-import com.example.myfirstmod.util.VerticalSlabMode;
-import net.minecraft.core.BlockPos;
+import com.example.myfirstmod.util.SlabSupport;
 import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.SlabType;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -49,18 +44,7 @@ public abstract class BlockOnSlabStateMixin {
             return;
         }
         boolean onSlab = BtsdhzConfig.TORCH_LANTERN_ON_SLAB.get()
-                && isBottomSlab(context.getLevel(), context.getClickedPos());
+                && SlabSupport.isBottomSlab(context.getLevel(), context.getClickedPos().below());
         cir.setReturnValue(state.setValue(ModBlockStateProperties.ON_SLAB, onSlab));
-    }
-
-    // 判断 pos 上方的方块下方的方块是否为“下台阶”（普通水平下半台阶，非竖台阶、非双台阶）
-    @Unique
-    private boolean isBottomSlab(BlockGetter level, BlockPos pos) {
-        BlockState below = level.getBlockState(pos.below());
-        return below.getBlock() instanceof SlabBlock
-                && below.hasProperty(ModBlockStateProperties.MODE)
-                && below.getValue(ModBlockStateProperties.MODE) == VerticalSlabMode.SLAB
-                && below.hasProperty(SlabBlock.TYPE)
-                && below.getValue(SlabBlock.TYPE) == SlabType.BOTTOM;
     }
 }

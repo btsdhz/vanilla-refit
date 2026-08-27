@@ -1,10 +1,14 @@
 package com.example.myfirstmod.mixin;
 
+import com.example.myfirstmod.config.BtsdhzConfig;
 import com.example.myfirstmod.util.ModBlockStateProperties;
+import com.example.myfirstmod.util.SlabSupport;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.BaseTorchBlock;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -26,6 +30,18 @@ public abstract class TorchOnSlabMixin {
 
     // 原版火把碰撞箱：Block.box(6, 0, 6, 10, 10, 10)，整体下移 8 格
     private static final VoxelShape SHAPE_ON_SLAB = Block.box(6.0, -8.0, 6.0, 10.0, 2.0, 10.0);
+
+    // 火把放在普通水平下半台阶上时，认定为有效支撑，允许放置
+    @Inject(method = "canSurvive", at = @At("HEAD"), cancellable = true, remap = false)
+    private void btsdhz_original$canSurvive(BlockState state, LevelReader level, BlockPos pos,
+                                            CallbackInfoReturnable<Boolean> cir) {
+        if ((Object)this instanceof TorchBlock
+                && BtsdhzConfig.TORCH_LANTERN_ON_SLAB.get()
+                && SlabSupport.isBottomSlab(level, pos.below())) {
+            cir.setReturnValue(true);
+            cir.cancel();
+        }
+    }
 
     @Inject(method = "getShape", at = @At("RETURN"), cancellable = true, remap = false)
     private void btsdhz_original$getShape(BlockState state, BlockGetter level, BlockPos pos,

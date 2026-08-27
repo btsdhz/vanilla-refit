@@ -2,21 +2,19 @@ package com.example.myfirstmod.mixin;
 
 import com.example.myfirstmod.config.BtsdhzConfig;
 import com.example.myfirstmod.util.ModBlockStateProperties;
-import com.example.myfirstmod.util.VerticalSlabMode;
+import com.example.myfirstmod.util.SlabSupport;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.LanternBlock;
-import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -52,8 +50,20 @@ public abstract class LanternOnSlabMixin {
         }
         boolean onSlab = !state.getValue(LanternBlock.HANGING)
                 && BtsdhzConfig.TORCH_LANTERN_ON_SLAB.get()
-                && isBottomSlab(context.getLevel(), context.getClickedPos());
+                && SlabSupport.isBottomSlab(context.getLevel(), context.getClickedPos().below());
         cir.setReturnValue(state.setValue(ModBlockStateProperties.ON_SLAB, onSlab));
+    }
+
+    // 非悬挂灯笼放在普通水平下半台阶上时，认定为有效支撑，允许放置
+    @Inject(method = "canSurvive", at = @At("HEAD"), cancellable = true, remap = false)
+    private void btsdhz_original$canSurvive(BlockState state, LevelReader level, BlockPos pos,
+                                            CallbackInfoReturnable<Boolean> cir) {
+        if (!state.getValue(LanternBlock.HANGING)
+                && BtsdhzConfig.TORCH_LANTERN_ON_SLAB.get()
+                && SlabSupport.isBottomSlab(level, pos.below())) {
+            cir.setReturnValue(true);
+            cir.cancel();
+        }
     }
 
     // 碰撞箱下移半格
@@ -64,15 +74,5 @@ public abstract class LanternOnSlabMixin {
                 && state.getValue(ModBlockStateProperties.ON_SLAB)) {
             cir.setReturnValue(SHAPE_ON_SLAB);
         }
-    }
-
-    @Unique
-    private boolean isBottomSlab(BlockGetter level, BlockPos pos) {
-        BlockState below = level.getBlockState(pos.below());
-        return below.getBlock() instanceof SlabBlock
-                && below.hasProperty(ModBlockStateProperties.MODE)
-                && below.getValue(ModBlockStateProperties.MODE) == VerticalSlabMode.SLAB
-                && below.hasProperty(SlabBlock.TYPE)
-                && below.getValue(SlabBlock.TYPE) == SlabType.BOTTOM;
     }
 }
