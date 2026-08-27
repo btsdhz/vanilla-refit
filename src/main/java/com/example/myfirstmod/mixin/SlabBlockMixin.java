@@ -65,7 +65,7 @@ public abstract class SlabBlockMixin {
     @Unique
     private static final VoxelShape COMFORT_LANTERN = Shapes.or(
             Block.box(5.0, 8.0, 5.0, 11.0, 15.0, 11.0),
-            Block.box(6.0, 15.0, 6.0, 10.0, 17.0, 16.0));
+            Block.box(6.0, 15.0, 6.0, 10.0, 17.0, 10.0));
 
     // ===== 1. 注册属性 =====
     @Inject(method = "createBlockStateDefinition", at = @At("RETURN"), remap = false)

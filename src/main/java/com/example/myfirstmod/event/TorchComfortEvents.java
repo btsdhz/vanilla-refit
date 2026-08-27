@@ -3,6 +3,7 @@ package com.example.myfirstmod.event;
 import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.VerticalSlabMode;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.LanternBlock;
@@ -43,7 +44,8 @@ public class TorchComfortEvents {
 
         // 取消拆半砖，改为拆上方火把/灯笼（会掉落对应物品）
         event.setCanceled(true);
-        event.getLevel().destroyBlock(pos.above(), true);
+        boolean creative = event.getEntity() instanceof Player p && p.getAbilities().instabuild;
+        event.getLevel().destroyBlock(pos.above(), !creative);
     }
 
     private static boolean isBottomSlabWithLoweredTorchAbove(Level level, BlockPos pos, BlockState state) {
