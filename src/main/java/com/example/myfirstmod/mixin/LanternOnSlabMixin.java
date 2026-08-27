@@ -5,11 +5,15 @@ import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.SlabSupport;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.LanternBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -24,6 +28,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  */
 @Mixin(LanternBlock.class)
 public abstract class LanternOnSlabMixin {
+
+    // 灯笼放在下台阶上：碰撞/拾取形状整体下移半格（8/16）
+    private static final VoxelShape SHAPE_ON_SLAB = Shapes.or(
+            Block.box(5.0, -8.0, 5.0, 11.0, -1.0, 11.0),
+            Block.box(6.0, -1.0, 6.0, 10.0, 1.0, 10.0));
 
     // 给灯笼增加 btsdhz_on_slab 属性
     @Inject(method = "createBlockStateDefinition", at = @At("RETURN"), remap = false)
@@ -53,6 +62,16 @@ public abstract class LanternOnSlabMixin {
                 && SlabSupport.isBottomSlab(level, pos.below())) {
             cir.setReturnValue(true);
             cir.cancel();
+        }
+    }
+
+    // 非悬挂灯笼自身碰撞箱下移半格（对齐到半砖舒适框）
+    @Inject(method = "getShape", at = @At("RETURN"), cancellable = true, remap = false)
+    private void btsdhz_original$getShape(BlockState state, BlockGetter level, BlockPos pos,
+                                          CollisionContext context, CallbackInfoReturnable<VoxelShape> cir) {
+        if (state.hasProperty(ModBlockStateProperties.ON_SLAB)
+                && state.getValue(ModBlockStateProperties.ON_SLAB)) {
+            cir.setReturnValue(SHAPE_ON_SLAB);
         }
     }
 }

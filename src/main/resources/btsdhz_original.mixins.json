@@ -16,6 +16,7 @@
     "PlayerEyeHeightMixin"
   ],
   "client": [
+    "TorchParticleMixin"
   ],
   "server": [
   ],

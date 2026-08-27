@@ -58,6 +58,15 @@ public abstract class SlabBlockMixin {
     @Unique
     private static final VoxelShape COMFORT_TORCH = Block.box(6.0, 8.0, 6.0, 10.0, 16.0, 10.0);
 
+    /**
+     * 灯笼舒适框：上方是下移灯笼时使用。灯笼比火把宽（主体 X/Z 5~11、颈部 6~10），
+     * 其下移后的碰撞箱在台阶格坐标系里为：主体 Y 8~15、颈部 Y 15~17。
+     */
+    @Unique
+    private static final VoxelShape COMFORT_LANTERN = Shapes.or(
+            Block.box(5.0, 8.0, 5.0, 11.0, 15.0, 11.0),
+            Block.box(6.0, 15.0, 6.0, 10.0, 17.0, 16.0));
+
     // ===== 1. 注册属性 =====
     @Inject(method = "createBlockStateDefinition", at = @At("RETURN"), remap = false)
     private void btsdhz_original$createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder, CallbackInfo ci) {
@@ -165,24 +174,32 @@ public abstract class SlabBlockMixin {
                 }
                 cir.setReturnValue(shape);
             } else if (mode == VerticalSlabMode.SLAB
-                    && state.getValue(SlabBlock.TYPE) == SlabType.BOTTOM
-                    && isLoweredTorchAbove(level, pos)) {
-                // 普通下半台阶 + 上方下移火把/灯笼：拾取形状并入舒适框
-                cir.setReturnValue(Shapes.or(cir.getReturnValue(), COMFORT_TORCH));
+                    && state.getValue(SlabBlock.TYPE) == SlabType.BOTTOM) {
+                BlockState above = getLoweredTorchOrLantern(level, pos);
+                if (above != null) {
+                    // 普通下半台阶 + 上方下移火把/灯笼：拾取形状并入对应舒适框
+                    boolean lantern = above.getBlock() instanceof LanternBlock;
+                    cir.setReturnValue(Shapes.or(cir.getReturnValue(),
+                            lantern ? COMFORT_LANTERN : COMFORT_TORCH));
+                }
             }
         }
     }
 
-    // 判断 pos 上方是否为“下移（ON_SLAB=true）的普通火把/灵魂火把/灯笼/灵魂灯笼”
+    // 返回 pos 上方是否为“下移（ON_SLAB=true）的普通火把/灵魂火把/灯笼/灵魂灯笼”；
+    // 是则返回该上方方块态，否则返回 null。
     @Unique
-    private static boolean isLoweredTorchAbove(BlockGetter level, BlockPos pos) {
+    private static BlockState getLoweredTorchOrLantern(BlockGetter level, BlockPos pos) {
         BlockState above = level.getBlockState(pos.above());
         Block b = above.getBlock();
         boolean isTorch = b instanceof TorchBlock && !(b instanceof WallTorchBlock);
         boolean isLantern = b instanceof LanternBlock;
-        return (isTorch || isLantern)
+        if ((isTorch || isLantern)
                 && above.hasProperty(ModBlockStateProperties.ON_SLAB)
-                && above.getValue(ModBlockStateProperties.ON_SLAB);
+                && above.getValue(ModBlockStateProperties.ON_SLAB)) {
+            return above;
+        }
+        return null;
     }
 
     // ===== 6. 不可替换 =====
