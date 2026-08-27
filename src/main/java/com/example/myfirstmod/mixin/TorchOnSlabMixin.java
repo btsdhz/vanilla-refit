@@ -38,7 +38,8 @@ public abstract class TorchOnSlabMixin {
                                             CallbackInfoReturnable<Boolean> cir) {
         if ((Object)this instanceof TorchBlock
                 && BtsdhzConfig.TORCH_LANTERN_ON_SLAB.get()
-                && SlabSupport.isBottomSlab(level, pos.below())) {
+                && SlabSupport.isBottomSlab(level, pos.below())
+                && !SlabSupport.isLavaSlab(level, pos.below())) {
             cir.setReturnValue(true);
             cir.cancel();
         }

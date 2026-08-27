@@ -59,7 +59,8 @@ public abstract class LanternOnSlabMixin {
                                             CallbackInfoReturnable<Boolean> cir) {
         if (!state.getValue(LanternBlock.HANGING)
                 && BtsdhzConfig.TORCH_LANTERN_ON_SLAB.get()
-                && SlabSupport.isBottomSlab(level, pos.below())) {
+                && SlabSupport.isBottomSlab(level, pos.below())
+                && !SlabSupport.isLavaSlab(level, pos.below())) {
             cir.setReturnValue(true);
             cir.cancel();
         }

@@ -47,4 +47,15 @@ public final class SlabSupport {
                 && above.hasProperty(ModBlockStateProperties.ON_SLAB)
                 && above.getValue(ModBlockStateProperties.ON_SLAB);
     }
+
+    /**
+     * @return pos 处的方块是否为含熔岩的台阶（FLUID_TYPE == LAVA）。
+     * 含水台阶不算（灯笼防水、火把火焰高于水面，仍可放置）；含熔岩的台阶不允许放置。
+     */
+    public static boolean isLavaSlab(BlockGetter level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+        return state.getBlock() instanceof SlabBlock
+                && state.hasProperty(ModBlockStateProperties.FLUID_TYPE)
+                && state.getValue(ModBlockStateProperties.FLUID_TYPE) == FluidType.LAVA;
+    }
 }
