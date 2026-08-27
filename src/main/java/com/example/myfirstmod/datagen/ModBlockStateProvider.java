@@ -33,6 +33,17 @@ public class ModBlockStateProvider extends BlockStateProvider {
             "cut_red_sandstone_slab"
     );
 
+    /**
+     * 这些材质的竖楼梯在 src/main/resources 下手工建模（多纹理），
+     * 不参与数据生成器的自动生成。
+     */
+    private static final Set<String> HAND_AUTH_STAIRS = Set.of(
+            "sandstone_stairs",
+            "cut_sandstone_stairs",
+            "red_sandstone_stairs",
+            "cut_red_sandstone_stairs"
+    );
+
     public ModBlockStateProvider(PackOutput output, ExistingFileHelper existingFileHelper) {
         super(output, "btsdhz_original", existingFileHelper);
     }
@@ -48,9 +59,10 @@ public class ModBlockStateProvider extends BlockStateProvider {
                     generateSlabBlockStates(slab, name);
                 });
 
-        // 楼梯
+        // 楼梯（剔除手工建模的多纹理材质）
         BuiltInRegistries.BLOCK.stream()
                 .filter(block -> block instanceof StairBlock)
+                .filter(stair -> !isHandAuthStair(stair))
                 .forEach(stair -> {
                     String name = BuiltInRegistries.BLOCK.getKey(stair).getPath();
                     generateStairBlockStates(stair, name);
@@ -59,6 +71,10 @@ public class ModBlockStateProvider extends BlockStateProvider {
 
     private boolean isHandAuthSlab(Block slab) {
         return HAND_AUTH_SLABS.contains(BuiltInRegistries.BLOCK.getKey(slab).getPath());
+    }
+
+    private boolean isHandAuthStair(Block stair) {
+        return HAND_AUTH_STAIRS.contains(BuiltInRegistries.BLOCK.getKey(stair).getPath());
     }
 
     // ===== 竖楼梯 + 平放楼梯 blockstate =====
