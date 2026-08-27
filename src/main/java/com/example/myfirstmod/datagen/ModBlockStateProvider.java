@@ -24,6 +24,12 @@ public class ModBlockStateProvider extends BlockStateProvider {
     /**
      * 这些材质的台阶在 src/main/resources 下手工建模（多纹理/特殊纹理），
      * 不参与数据生成器的自动生成，避免生成错误的单纹理版本。
+     *
+     * 说明：
+     *  - 平滑石：模组固定使用 smooth_stone 单一纹理，不走通用纹理映射；
+     *  - 砂岩 / 红砂岩及它们的切制版：属于多纹理方块（顶/侧/底不同），
+     *    通用生成的单纹理模型会把顶/底也渲染成侧面纹理，故改为手工建模，
+     *    并提供按面分配的纹理（见 vertical_slab_multi_*.json 及对应 per-material 模型）。
      */
     private static final Set<String> HAND_AUTH_SLABS = Set.of(
             "smooth_stone_slab",
@@ -36,12 +42,14 @@ public class ModBlockStateProvider extends BlockStateProvider {
     /**
      * 这些材质的竖楼梯在 src/main/resources 下手工建模（多纹理），
      * 不参与数据生成器的自动生成。
+     *
+     * 注意：原版不存在 cut_sandstone_stairs / cut_red_sandstone_stairs 方块，
+     * 因此此处只列出真实存在的 sandstone_stairs 与 red_sandstone_stairs。
+     * 切制砂岩/切制红砂岩只有台阶(slab)没有楼梯(stairs)。
      */
     private static final Set<String> HAND_AUTH_STAIRS = Set.of(
             "sandstone_stairs",
-            "cut_sandstone_stairs",
-            "red_sandstone_stairs",
-            "cut_red_sandstone_stairs"
+            "red_sandstone_stairs"
     );
 
     public ModBlockStateProvider(PackOutput output, ExistingFileHelper existingFileHelper) {
