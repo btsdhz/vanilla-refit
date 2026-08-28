@@ -1,0 +1,7 @@
+{
+  "parent": "btsdhz_original:block/vertical_stair_conn_right",
+  "textures": {
+    "particle": "minecraft:block/exposed_cut_copper",
+    "texture": "minecraft:block/exposed_cut_copper"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "parent": "btsdhz_original:block/vertical_double_ew",
+  "textures": {
+    "particle": "minecraft:block/warped_planks",
+    "texture": "minecraft:block/warped_planks"
+  }
+}

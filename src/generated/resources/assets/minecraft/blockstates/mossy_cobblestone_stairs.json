@@ -1,0 +1,445 @@
+{
+  "variants": {
+    "btsdhz_connection=bottom,btsdhz_vertical=true,facing=east,half=bottom": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_connection=bottom,btsdhz_vertical=true,facing=east,half=top": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_connection=bottom,btsdhz_vertical=true,facing=north,half=bottom": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_connection=bottom,btsdhz_vertical=true,facing=north,half=top": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_connection=bottom,btsdhz_vertical=true,facing=south,half=bottom": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true
+    },
+    "btsdhz_connection=bottom,btsdhz_vertical=true,facing=south,half=top": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true
+    },
+    "btsdhz_connection=bottom,btsdhz_vertical=true,facing=west,half=bottom": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_connection=bottom,btsdhz_vertical=true,facing=west,half=top": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_connection=conn_double,btsdhz_vertical=true,facing=east,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_conn_double_mossy_cobblestone_stairs",
+      "uvlock": true
+    },
+    "btsdhz_connection=conn_double,btsdhz_vertical=true,facing=east,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_conn_double_top_mossy_cobblestone_stairs",
+      "uvlock": true
+    },
+    "btsdhz_connection=conn_double,btsdhz_vertical=true,facing=north,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_conn_double_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_connection=conn_double,btsdhz_vertical=true,facing=north,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_conn_double_top_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_connection=conn_double,btsdhz_vertical=true,facing=south,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_conn_double_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_connection=conn_double,btsdhz_vertical=true,facing=south,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_conn_double_top_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_connection=conn_double,btsdhz_vertical=true,facing=west,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_conn_double_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_connection=conn_double,btsdhz_vertical=true,facing=west,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_conn_double_top_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_connection=conn_left,btsdhz_vertical=true,facing=east,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_conn_left_mossy_cobblestone_stairs",
+      "uvlock": true
+    },
+    "btsdhz_connection=conn_left,btsdhz_vertical=true,facing=east,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_conn_left_top_mossy_cobblestone_stairs",
+      "uvlock": true
+    },
+    "btsdhz_connection=conn_left,btsdhz_vertical=true,facing=north,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_conn_left_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_connection=conn_left,btsdhz_vertical=true,facing=north,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_conn_left_top_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_connection=conn_left,btsdhz_vertical=true,facing=south,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_conn_left_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_connection=conn_left,btsdhz_vertical=true,facing=south,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_conn_left_top_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_connection=conn_left,btsdhz_vertical=true,facing=west,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_conn_left_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_connection=conn_left,btsdhz_vertical=true,facing=west,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_conn_left_top_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_connection=conn_right,btsdhz_vertical=true,facing=east,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_conn_right_mossy_cobblestone_stairs",
+      "uvlock": true
+    },
+    "btsdhz_connection=conn_right,btsdhz_vertical=true,facing=east,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_conn_right_top_mossy_cobblestone_stairs",
+      "uvlock": true
+    },
+    "btsdhz_connection=conn_right,btsdhz_vertical=true,facing=north,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_conn_right_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_connection=conn_right,btsdhz_vertical=true,facing=north,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_conn_right_top_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_connection=conn_right,btsdhz_vertical=true,facing=south,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_conn_right_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_connection=conn_right,btsdhz_vertical=true,facing=south,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_conn_right_top_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_connection=conn_right,btsdhz_vertical=true,facing=west,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_conn_right_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_connection=conn_right,btsdhz_vertical=true,facing=west,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_conn_right_top_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_connection=none,btsdhz_vertical=true,facing=east,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_mossy_cobblestone_stairs",
+      "uvlock": true
+    },
+    "btsdhz_connection=none,btsdhz_vertical=true,facing=east,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_mossy_cobblestone_stairs",
+      "uvlock": true
+    },
+    "btsdhz_connection=none,btsdhz_vertical=true,facing=north,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_connection=none,btsdhz_vertical=true,facing=north,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_connection=none,btsdhz_vertical=true,facing=south,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_connection=none,btsdhz_vertical=true,facing=south,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_connection=none,btsdhz_vertical=true,facing=west,half=bottom": {
+      "model": "btsdhz_original:block/vertical_stair_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_connection=none,btsdhz_vertical=true,facing=west,half=top": {
+      "model": "btsdhz_original:block/vertical_stair_mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_connection=top,btsdhz_vertical=true,facing=east,half=bottom": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180
+    },
+    "btsdhz_connection=top,btsdhz_vertical=true,facing=east,half=top": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180
+    },
+    "btsdhz_connection=top,btsdhz_vertical=true,facing=north,half=bottom": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180,
+      "y": 270
+    },
+    "btsdhz_connection=top,btsdhz_vertical=true,facing=north,half=top": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180,
+      "y": 270
+    },
+    "btsdhz_connection=top,btsdhz_vertical=true,facing=south,half=bottom": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180,
+      "y": 90
+    },
+    "btsdhz_connection=top,btsdhz_vertical=true,facing=south,half=top": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180,
+      "y": 90
+    },
+    "btsdhz_connection=top,btsdhz_vertical=true,facing=west,half=bottom": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180,
+      "y": 180
+    },
+    "btsdhz_connection=top,btsdhz_vertical=true,facing=west,half=top": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180,
+      "y": 180
+    },
+    "btsdhz_vertical=false,facing=east,half=bottom,shape=inner_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_vertical=false,facing=east,half=bottom,shape=inner_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner"
+    },
+    "btsdhz_vertical=false,facing=east,half=bottom,shape=outer_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_vertical=false,facing=east,half=bottom,shape=outer_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer"
+    },
+    "btsdhz_vertical=false,facing=east,half=bottom,shape=straight": {
+      "model": "minecraft:block/mossy_cobblestone_stairs"
+    },
+    "btsdhz_vertical=false,facing=east,half=top,shape=inner_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180
+    },
+    "btsdhz_vertical=false,facing=east,half=top,shape=inner_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180,
+      "y": 90
+    },
+    "btsdhz_vertical=false,facing=east,half=top,shape=outer_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer",
+      "uvlock": true,
+      "x": 180
+    },
+    "btsdhz_vertical=false,facing=east,half=top,shape=outer_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer",
+      "uvlock": true,
+      "x": 180,
+      "y": 90
+    },
+    "btsdhz_vertical=false,facing=east,half=top,shape=straight": {
+      "model": "minecraft:block/mossy_cobblestone_stairs",
+      "uvlock": true,
+      "x": 180
+    },
+    "btsdhz_vertical=false,facing=north,half=bottom,shape=inner_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_vertical=false,facing=north,half=bottom,shape=inner_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_vertical=false,facing=north,half=bottom,shape=outer_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_vertical=false,facing=north,half=bottom,shape=outer_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_vertical=false,facing=north,half=bottom,shape=straight": {
+      "model": "minecraft:block/mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 270
+    },
+    "btsdhz_vertical=false,facing=north,half=top,shape=inner_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180,
+      "y": 270
+    },
+    "btsdhz_vertical=false,facing=north,half=top,shape=inner_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180
+    },
+    "btsdhz_vertical=false,facing=north,half=top,shape=outer_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer",
+      "uvlock": true,
+      "x": 180,
+      "y": 270
+    },
+    "btsdhz_vertical=false,facing=north,half=top,shape=outer_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer",
+      "uvlock": true,
+      "x": 180
+    },
+    "btsdhz_vertical=false,facing=north,half=top,shape=straight": {
+      "model": "minecraft:block/mossy_cobblestone_stairs",
+      "uvlock": true,
+      "x": 180,
+      "y": 270
+    },
+    "btsdhz_vertical=false,facing=south,half=bottom,shape=inner_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner"
+    },
+    "btsdhz_vertical=false,facing=south,half=bottom,shape=inner_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_vertical=false,facing=south,half=bottom,shape=outer_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer"
+    },
+    "btsdhz_vertical=false,facing=south,half=bottom,shape=outer_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_vertical=false,facing=south,half=bottom,shape=straight": {
+      "model": "minecraft:block/mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_vertical=false,facing=south,half=top,shape=inner_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180,
+      "y": 90
+    },
+    "btsdhz_vertical=false,facing=south,half=top,shape=inner_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180,
+      "y": 180
+    },
+    "btsdhz_vertical=false,facing=south,half=top,shape=outer_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer",
+      "uvlock": true,
+      "x": 180,
+      "y": 90
+    },
+    "btsdhz_vertical=false,facing=south,half=top,shape=outer_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer",
+      "uvlock": true,
+      "x": 180,
+      "y": 180
+    },
+    "btsdhz_vertical=false,facing=south,half=top,shape=straight": {
+      "model": "minecraft:block/mossy_cobblestone_stairs",
+      "uvlock": true,
+      "x": 180,
+      "y": 90
+    },
+    "btsdhz_vertical=false,facing=west,half=bottom,shape=inner_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_vertical=false,facing=west,half=bottom,shape=inner_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_vertical=false,facing=west,half=bottom,shape=outer_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer",
+      "uvlock": true,
+      "y": 90
+    },
+    "btsdhz_vertical=false,facing=west,half=bottom,shape=outer_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_vertical=false,facing=west,half=bottom,shape=straight": {
+      "model": "minecraft:block/mossy_cobblestone_stairs",
+      "uvlock": true,
+      "y": 180
+    },
+    "btsdhz_vertical=false,facing=west,half=top,shape=inner_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180,
+      "y": 180
+    },
+    "btsdhz_vertical=false,facing=west,half=top,shape=inner_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_inner",
+      "uvlock": true,
+      "x": 180,
+      "y": 270
+    },
+    "btsdhz_vertical=false,facing=west,half=top,shape=outer_left": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer",
+      "uvlock": true,
+      "x": 180,
+      "y": 180
+    },
+    "btsdhz_vertical=false,facing=west,half=top,shape=outer_right": {
+      "model": "minecraft:block/mossy_cobblestone_stairs_outer",
+      "uvlock": true,
+      "x": 180,
+      "y": 270
+    },
+    "btsdhz_vertical=false,facing=west,half=top,shape=straight": {
+      "model": "minecraft:block/mossy_cobblestone_stairs",
+      "uvlock": true,
+      "x": 180,
+      "y": 180
+    }
+  }
+}

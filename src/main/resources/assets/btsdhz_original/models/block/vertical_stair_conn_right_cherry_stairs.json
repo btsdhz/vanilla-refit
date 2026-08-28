@@ -1,0 +1,7 @@
+{
+  "parent": "btsdhz_original:block/vertical_stair_conn_right",
+  "textures": {
+    "particle": "minecraft:block/cherry_planks",
+    "texture": "minecraft:block/cherry_planks"
+  }
+}

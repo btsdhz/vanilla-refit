@@ -1,0 +1,31 @@
+{
+  "variants": {
+    "btsdhz_mode=slab,type=bottom": {
+      "model": "minecraft:block/dark_prismarine_slab"
+    },
+    "btsdhz_mode=slab,type=double": {
+      "model": "btsdhz_original:block/slab_double_dark_prismarine_slab"
+    },
+    "btsdhz_mode=slab,type=top": {
+      "model": "minecraft:block/dark_prismarine_slab_top"
+    },
+    "btsdhz_mode=vertical_ew,type=bottom": {
+      "model": "btsdhz_original:block/vertical_slab_west_dark_prismarine_slab"
+    },
+    "btsdhz_mode=vertical_ew,type=double": {
+      "model": "btsdhz_original:block/vertical_double_ew_dark_prismarine_slab"
+    },
+    "btsdhz_mode=vertical_ew,type=top": {
+      "model": "btsdhz_original:block/vertical_slab_east_dark_prismarine_slab"
+    },
+    "btsdhz_mode=vertical_ns,type=bottom": {
+      "model": "btsdhz_original:block/vertical_slab_north_dark_prismarine_slab"
+    },
+    "btsdhz_mode=vertical_ns,type=double": {
+      "model": "btsdhz_original:block/vertical_double_ns_dark_prismarine_slab"
+    },
+    "btsdhz_mode=vertical_ns,type=top": {
+      "model": "btsdhz_original:block/vertical_slab_south_dark_prismarine_slab"
+    }
+  }
+}

@@ -1,0 +1,51 @@
+### Gradle ###
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/**/build/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/**/out/
+
+.run/
+
+### Eclipse ###
+.apt_generated
+.classpath
+.eclipse/
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/**/bin/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+### Minecraft Modding ###
+run/
+!**/src/**/run/
+**/src/generated/**/.cache/
+repo/
+!**/src/**/repo/
+
+### 本机解包/本地工作目录（不入库） ###
+/sourcesWithNeoForge(源码解包)/
+/1.21.1资源解包/
+/备份/
+/报错/
+/wen_jian.txt
+/src/main/resources/assets/btsdhz_original/models/block/输出本目录全部文件名.bat
+/src/main/resources/assets/minecraft/blockstates/输出本目录全部文件名.bat
+/src/main/resources/.cache/
+/src/main/resources/assets/**/.cache/

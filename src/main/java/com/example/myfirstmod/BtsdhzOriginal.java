@@ -27,6 +27,7 @@ public class BtsdhzOriginal {
         ModBlocks.BLOCKS.register(modEventBus);
         ModBlocks.ITEMS.register(modEventBus);
         ModEntities.ENTITY_TYPES.register(modEventBus);
+        ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         modEventBus.addListener(this::addCreativeTabItems);
 
         if (FMLEnvironment.dist == Dist.CLIENT) {
@@ -38,6 +39,7 @@ public class BtsdhzOriginal {
     private void addCreativeTabItems(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.BUILDING_BLOCKS) {
             event.accept(ModBlocks.SMOOTH_STONE_STAIRS_ITEM.get());
+            event.accept(ModBlocks.MERGED_SLAB_ITEM.get());
         }
     }
 

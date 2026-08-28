@@ -1,0 +1,7 @@
+{
+  "parent": "btsdhz_original:block/vertical_slab_south",
+  "textures": {
+    "particle": "minecraft:block/acacia_planks",
+    "texture": "minecraft:block/acacia_planks"
+  }
+}

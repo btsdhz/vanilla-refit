@@ -1,5 +1,7 @@
 package com.example.myfirstmod.datagen;
 
+import com.example.myfirstmod.ModBlocks;
+import com.example.myfirstmod.util.FluidType;
 import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.VerticalSlabMode;
 import net.minecraft.core.Direction;
@@ -58,6 +60,9 @@ public class ModBlockStateProvider extends BlockStateProvider {
 
     @Override
     protected void registerStatesAndModels() {
+        // 混合半砖：一格放两块不同材质半砖。模型是占位（客户端运行时合并两块半砖几何）
+        generateMixedSlabBlockStates();
+
         // 台阶（剔除手工建模的多纹理材质）
         BuiltInRegistries.BLOCK.stream()
                 .filter(block -> block instanceof SlabBlock)
@@ -75,6 +80,29 @@ public class ModBlockStateProvider extends BlockStateProvider {
                     String name = BuiltInRegistries.BLOCK.getKey(stair).getPath();
                     generateStairBlockStates(stair, name);
                 });
+    }
+
+    private void generateMixedSlabBlockStates() {
+        ModelFile placeholder = models().getBuilder("merged_slab")
+                .parent(new ModelFile.UncheckedModelFile(mcLoc("block/cube_all")))
+                .texture("all", mcLoc("block/stone"));
+        ModelFile itemModel = models().getBuilder("merged_slab_inventory")
+                .parent(new ModelFile.UncheckedModelFile(mcLoc("block/cube_all")))
+                .texture("all", mcLoc("block/stone"));
+
+        var builder = getVariantBuilder(ModBlocks.MERGED_SLAB.get());
+        // 遍历 3×3×3 属性组合，保证运行时每个 BlockState 都有模型可查。
+        for (VerticalSlabMode mode : VerticalSlabMode.values()) {
+            for (SlabType type : SlabType.values()) {
+                for (FluidType fluid : FluidType.values()) {
+                    builder.partialState()
+                            .with(ModBlockStateProperties.MODE, mode)
+                            .with(SlabBlock.TYPE, type)
+                            .with(ModBlockStateProperties.FLUID_TYPE, fluid)
+                            .addModels(new ConfiguredModel(placeholder));
+                }
+            }
+        }
     }
 
     private boolean isHandAuthSlab(Block slab) {

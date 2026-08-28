@@ -1,0 +1,7 @@
+{
+  "parent": "btsdhz_original:block/vertical_double_ns",
+  "textures": {
+    "particle": "minecraft:block/crimson_planks",
+    "texture": "minecraft:block/crimson_planks"
+  }
+}

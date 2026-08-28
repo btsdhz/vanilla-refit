@@ -1,0 +1,7 @@
+{
+  "parent": "btsdhz_original:block/vertical_slab_west",
+  "textures": {
+    "particle": "minecraft:block/granite",
+    "texture": "minecraft:block/granite"
+  }
+}

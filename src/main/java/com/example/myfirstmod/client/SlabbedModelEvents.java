@@ -1,6 +1,7 @@
 package com.example.myfirstmod.client;
 
 import com.example.myfirstmod.client.model.SlabbedLoweringModel;
+import com.example.myfirstmod.client.model.MixedSlabModel;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.resources.model.BakedModel;
@@ -18,6 +19,8 @@ public class SlabbedModelEvents {
     // 该事件只在客户端、资源重载烘焙时触发；此处仅包装 BakedModel，不访问客户端对象。
     private static final String ON_SLAB_TRUE = "btsdhz_on_slab=true";
 
+    private static final String MIXED_SLAB_PATH = "merged_slab";
+
     public static void onModifyBakingResult(ModelEvent.ModifyBakingResult event) {
         List<ModelResourceLocation> toWrap = new ArrayList<>();
         for (ModelResourceLocation loc : event.getModels().keySet()) {
@@ -29,6 +32,16 @@ public class SlabbedModelEvents {
             BakedModel original = event.getModels().get(loc);
             if (original != null) {
                 event.getModels().put(loc, new SlabbedLoweringModel(original));
+            }
+        }
+
+        // 混合半砖：把模型包装成可读取方块实体中两块材质并动态合并的模型
+        for (ModelResourceLocation loc : event.getModels().keySet()) {
+            if (loc.id().getNamespace().equals("btsdhz_original") && loc.id().getPath().equals(MIXED_SLAB_PATH)) {
+                BakedModel original = event.getModels().get(loc);
+                if (original != null) {
+                    event.getModels().put(loc, new MixedSlabModel(original));
+                }
             }
         }
     }

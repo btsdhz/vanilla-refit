@@ -1,0 +1,7 @@
+{
+  "parent": "btsdhz_original:block/vertical_stair_conn_right_top",
+  "textures": {
+    "particle": "minecraft:block/polished_diorite",
+    "texture": "minecraft:block/polished_diorite"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/smooth_stone",
+    "front": "minecraft:block/smooth_stone",
+    "side": "btsdhz_original:block/smooth_stone_slab_side_vertical",
+    "top_bottom": "minecraft:block/smooth_stone_slab_side"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 8],
+      "to": [16, 16, 16],
+      "faces": {
+        "down": { "uv": [0, 8, 16, 16], "texture": "#top_bottom" },
+        "up": { "uv": [0, 8, 16, 16], "texture": "#top_bottom" },
+        "north": { "uv": [0, 0, 16, 16], "texture": "#front" },
+        "south": { "uv": [0, 0, 16, 16], "texture": "#front" },
+        "west": { "uv": [0, 0, 8, 16], "texture": "#side" },
+        "east": { "uv": [0, 0, 8, 16], "texture": "#side" }
+      }
+    }
+  ]
+}

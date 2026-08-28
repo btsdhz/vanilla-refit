@@ -1,0 +1,7 @@
+{
+  "parent": "btsdhz_original:block/vertical_stair_conn_double_top",
+  "textures": {
+    "particle": "minecraft:block/polished_andesite",
+    "texture": "minecraft:block/polished_andesite"
+  }
+}

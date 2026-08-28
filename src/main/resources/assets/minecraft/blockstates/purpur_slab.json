@@ -1,0 +1,31 @@
+{
+  "variants": {
+    "btsdhz_mode=slab,type=bottom": {
+      "model": "minecraft:block/purpur_slab"
+    },
+    "btsdhz_mode=slab,type=double": {
+      "model": "btsdhz_original:block/slab_double_purpur_slab"
+    },
+    "btsdhz_mode=slab,type=top": {
+      "model": "minecraft:block/purpur_slab_top"
+    },
+    "btsdhz_mode=vertical_ew,type=bottom": {
+      "model": "btsdhz_original:block/vertical_slab_west_purpur_slab"
+    },
+    "btsdhz_mode=vertical_ew,type=double": {
+      "model": "btsdhz_original:block/vertical_double_ew_purpur_slab"
+    },
+    "btsdhz_mode=vertical_ew,type=top": {
+      "model": "btsdhz_original:block/vertical_slab_east_purpur_slab"
+    },
+    "btsdhz_mode=vertical_ns,type=bottom": {
+      "model": "btsdhz_original:block/vertical_slab_north_purpur_slab"
+    },
+    "btsdhz_mode=vertical_ns,type=double": {
+      "model": "btsdhz_original:block/vertical_double_ns_purpur_slab"
+    },
+    "btsdhz_mode=vertical_ns,type=top": {
+      "model": "btsdhz_original:block/vertical_slab_south_purpur_slab"
+    }
+  }
+}

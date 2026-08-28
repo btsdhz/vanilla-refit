@@ -1,6 +1,7 @@
 package com.example.myfirstmod.mixin;
 
 import com.example.myfirstmod.util.SlabSupport;
+import com.example.myfirstmod.block.MixedSlabBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.core.BlockPos;
@@ -29,6 +30,12 @@ public abstract class MultiPlayerGameModeMixin {
     @Inject(method = "destroyBlock", at = @At("HEAD"), cancellable = true, remap = false, require = 0)
     private void btsdhz_original$redirectDestroy(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
         if (this.minecraft.level == null) {
+            return;
+        }
+        // 混合半砖：不在客户端预测“拆半格”，交给服务端权威决定（避免闪回）
+        if (this.minecraft.level.getBlockState(pos).getBlock() instanceof MixedSlabBlock) {
+            cir.setReturnValue(false);
+            cir.cancel();
             return;
         }
         if (SlabSupport.isBottomSlab(this.minecraft.level, pos)

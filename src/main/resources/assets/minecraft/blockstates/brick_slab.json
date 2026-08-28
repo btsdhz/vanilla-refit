@@ -1,0 +1,31 @@
+{
+  "variants": {
+    "btsdhz_mode=slab,type=bottom": {
+      "model": "minecraft:block/brick_slab"
+    },
+    "btsdhz_mode=slab,type=double": {
+      "model": "btsdhz_original:block/slab_double_brick_slab"
+    },
+    "btsdhz_mode=slab,type=top": {
+      "model": "minecraft:block/brick_slab_top"
+    },
+    "btsdhz_mode=vertical_ew,type=bottom": {
+      "model": "btsdhz_original:block/vertical_slab_west_brick_slab"
+    },
+    "btsdhz_mode=vertical_ew,type=double": {
+      "model": "btsdhz_original:block/vertical_double_ew_brick_slab"
+    },
+    "btsdhz_mode=vertical_ew,type=top": {
+      "model": "btsdhz_original:block/vertical_slab_east_brick_slab"
+    },
+    "btsdhz_mode=vertical_ns,type=bottom": {
+      "model": "btsdhz_original:block/vertical_slab_north_brick_slab"
+    },
+    "btsdhz_mode=vertical_ns,type=double": {
+      "model": "btsdhz_original:block/vertical_double_ns_brick_slab"
+    },
+    "btsdhz_mode=vertical_ns,type=top": {
+      "model": "btsdhz_original:block/vertical_slab_south_brick_slab"
+    }
+  }
+}

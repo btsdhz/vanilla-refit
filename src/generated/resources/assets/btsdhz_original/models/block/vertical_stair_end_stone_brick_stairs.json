@@ -1,0 +1,7 @@
+{
+  "parent": "btsdhz_original:block/vertical_stair",
+  "textures": {
+    "particle": "minecraft:block/end_stone_bricks",
+    "texture": "minecraft:block/end_stone_bricks"
+  }
+}

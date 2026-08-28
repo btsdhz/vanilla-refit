@@ -1,0 +1,7 @@
+{
+  "parent": "btsdhz_original:block/vertical_slab_north",
+  "textures": {
+    "particle": "minecraft:block/cobbled_deepslate",
+    "texture": "minecraft:block/cobbled_deepslate"
+  }
+}

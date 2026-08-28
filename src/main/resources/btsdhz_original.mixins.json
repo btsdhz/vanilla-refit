@@ -11,6 +11,7 @@
     "TorchOnSlabMixin",
     "LanternOnSlabMixin",
     "RedstoneTorchOnSlabMixin",
+    "ServerPlayerGameModeMixin",
     "LeadItemMixin",
     "AnvilMenuMixin",
     "PlayerSitMixin",
