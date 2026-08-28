@@ -13,10 +13,18 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.SlabType;
 
 /**
- * 把“往已有半砖的另一半放不同材质”的情形，转成一格混合半砖（MixedSlabBlock）。
+ * 统一的“半砖放置/填充”判定：只要点击面朝向某个半砖的空余半砖空间，就在该格填入半砖。
+ *
+ * 这套规则对所有方向、平放/竖放、同材质/不同材质一致：
+ *  - 同材质 → 设成原版 DOUBLE（两半同材质的完整方块）；
+ *  - 不同材质 → 设成一格混合半砖（两块不同材质各占一半）。
+ *
+ * “空余半砖空间”指半砖缺的那一半所在方向。触发点击分两种：
+ *  - 直接点半砖本体朝向空余空间的那一面；
+ *  - 点空余空间旁边某个方块、且该面朝向半砖空余空间的那一面。
  *
  * 朝向编码（与 MixedSlabBlock 渲染一致）：
- *  - 0 = 水平下半（MODE=SLAB, TYPE=BOTTOM）      上半=1
+ *  - 0 = 平放下半（MODE=SLAB, TYPE=BOTTOM）      上半=1
  *  - 2 = 竖直北半（MODE=VERTICAL_NS, TYPE=BOTTOM）南半=3
  *  - 4 = 竖直西半（MODE=VERTICAL_EW, TYPE=BOTTOM）东半=5
  *  A 永远取较小编号的一半，B 取较大编号的一半。
@@ -27,58 +35,68 @@ public final class MixedSlabPlacement {
     }
 
     /**
-     * 点击“半砖自身朝向空余半砖空间的那一面”时，把它与新块 block 合并成混合半砖。
+     * 统一入口：尝试把手持半砖 block 填进一个“朝向该半砖空余半砖空间”的格子。
      *
-     * 空余空间方向 emptyFace 由目标半砖朝向决定。allowedOpposite=true 时也允许点击
-     * 空余空间的反向面（可由调用方区分“点半砖本体”与“点邻居方块的面”两种走到这里的路径）。
-     *
-     * @return 是否成功合并。
+     * @return true 表示已处理（该格已变为 DOUBLE 或混合半砖），调用方应结束原逻辑。
      */
-    public static boolean tryMerge(Level level, BlockPos pos, BlockState targetState, Block block,
-                                   Direction clickedFace, boolean allowedOpposite) {
-        if (!isMergeableHalf(targetState, block)) {
-            return false;
+    public static boolean tryFill(Level level, BlockPos clickedPos, BlockState targetState, Block block,
+                                  Direction clickedFace) {
+        // 情形 A：点击半砖本体，点击面朝向它的空余半砖空间（点了“朝空余空间的那一面”）
+        if (isDirectFillable(targetState, clickedFace)) {
+            return fill(level, clickedPos, targetState, block);
         }
-        Direction emptyFace = emptyFaceOf(orientationOf(targetState));
-        boolean faceOk = clickedFace == emptyFace
-                || (allowedOpposite && clickedFace == emptyFace.getOpposite());
-        if (!faceOk) {
-            return false;
+        // 情形 B：点击相邻方块、且该面朝向一个有空余半砖空间的半砖格
+        BlockPos neighborPos = clickedPos.relative(clickedFace);
+        if (!neighborPos.equals(clickedPos)) {
+            BlockState sideState = level.getBlockState(neighborPos);
+            if (isNeighborFillable(sideState)) {
+                return fill(level, neighborPos, sideState, block);
+            }
         }
-        return merge(level, pos, targetState, block);
+        return false;
     }
 
-    /**
-     * 从“空余半砖空间”那边的相邻方块发起合并：点击 emptyPos（=slabPos.offset(emptyFace)）
-     * 处方块朝向本格空余空间的那一面时，把本格半砖合并为混合半砖。
-     */
-    public static boolean tryMergeFromNeighbor(Level level, BlockPos slabPos, BlockState targetState,
-                                               BlockPos emptyPos, Block block, Direction clickedFace) {
-        if (!isMergeableHalf(targetState, block)) {
+    /** 点击半砖本体：该格是半砖、未填满，且点击面朝向空余半砖空间。 */
+    private static boolean isDirectFillable(BlockState state, Direction clickedFace) {
+        if (!(state.getBlock() instanceof SlabBlock) || !state.hasProperty(ModBlockStateProperties.MODE)) {
             return false;
         }
-        Direction emptyFace = emptyFaceOf(orientationOf(targetState));
-        // 本格空余空间在 emptyFace 那侧，从 emptyPos(=slabPos.offset(emptyFace)) 点击
-        // 朝向本格的面，即 clickedFace == emptyFace.getOpposite()。
-        return clickedFace == emptyFace.getOpposite()
-                && merge(level, slabPos, targetState, block);
-    }
-
-    private static boolean isMergeableHalf(BlockState state, Block block) {
-        if (!(state.getBlock() instanceof SlabBlock)) {
+        SlabType type = state.getValue(SlabBlock.TYPE);
+        if (type == SlabType.DOUBLE) {
             return false;
         }
-        if (state.getBlock() == block) {
-            return false;   // 同材质走原版 DOUBLE 合并，不进混合半砖
-        }
-        return state.hasProperty(ModBlockStateProperties.MODE);
+        int existing = orientationOf(state);
+        return existing >= 0 && clickedFace == emptyFaceOf(existing);
     }
 
-    private static boolean merge(Level level, BlockPos pos, BlockState targetState, Block block) {
+    /** 点击相邻方块：该面朝向一个“有空余半砖空间”的半砖格（不限定方向，覆盖对面与侧面）。 */
+    private static boolean isNeighborFillable(BlockState state) {
+        if (!(state.getBlock() instanceof SlabBlock) || !state.hasProperty(ModBlockStateProperties.MODE)) {
+            return false;
+        }
+        return state.getValue(SlabBlock.TYPE) != SlabType.DOUBLE && orientationOf(state) >= 0;
+    }
+
+    /** 在该格填入半砖：同材质→DOUBLE，不同材质→混合。 */
+    private static boolean fill(Level level, BlockPos pos, BlockState targetState, Block block) {
         int existing = orientationOf(targetState);
         if (existing < 0) {
             return false;
         }
+        boolean sameMaterial = targetState.getBlock() == block;
+        if (sameMaterial) {
+            // 同材质：原版 DOUBLE
+            BlockState doubleState = targetState.setValue(SlabBlock.TYPE, SlabType.DOUBLE)
+                    .setValue(ModBlockStateProperties.FLUID_TYPE, FluidType.NONE)
+                    .setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED, false);
+            if (level.setBlock(pos, doubleState, 3)) {
+                level.playSound(null, pos, doubleState.getSoundType().getPlaceSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
+                return true;
+            }
+            return false;
+        }
+
+        // 不同材质：混合半砖
         int newOrientation = oppositeOf(existing);
         Block a;       // 较小编号的一半
         Block b;       // 较大编号的一半
@@ -89,7 +107,6 @@ public final class MixedSlabPlacement {
             a = block;
             b = targetState.getBlock();
         }
-
         ParticleOrientation o1 = orientation(existing);
         BlockState mergedState = buildMergedState(o1.mode(), o1.type(), a, b, targetState, level, pos);
         if (level.setBlock(pos, mergedState, 3)) {
