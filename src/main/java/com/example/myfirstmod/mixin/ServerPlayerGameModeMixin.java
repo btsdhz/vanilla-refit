@@ -31,11 +31,16 @@ public abstract class ServerPlayerGameModeMixin {
 
     @Inject(method = "destroyBlock", at = @At("HEAD"), cancellable = true, remap = false)
     private void btsdhz_original$breakMixedHalf(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
-        // 默认不潜行 -> 原版整个拆除；仅潜行时走“只拆一半”
+        BlockState state = this.level.getBlockState(pos);
         if (!this.player.isShiftKeyDown()) {
+            // 非潜行：原版整块拆除。但混合半砖无掉落表、原版产不出掉落，这里手动接管整挖掉落。
+            if (MixedSlabBreakHandler.dropWholeMixed(this.level, pos, state, this.player)) {
+                cir.setReturnValue(true);
+                cir.cancel();
+            }
             return;
         }
-        BlockState state = this.level.getBlockState(pos);
+        // 潜行：只拆被准星命中的那一半
         if (MixedSlabBreakHandler.tryBreakHalf(this.level, pos, state, this.player)) {
             cir.setReturnValue(true);
             cir.cancel();

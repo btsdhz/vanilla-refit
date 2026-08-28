@@ -11,6 +11,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -49,6 +50,34 @@ public final class MixedSlabBreakHandler {
             return breakDoubleHalf(level, pos, state, player);
         }
         return false;
+    }
+
+    /**
+     * 整块拆除混合半砖：移除方块并释放两块半砖的掉落物（创造模式不掉落）。
+     *
+     * 之所以要在这里手动处理，是因为混合半砖没有原版掉落表，原版破坏链靠 getDrops 产掉落，
+     * 对我们会吐空；这里直接弹掉两块半砖。返回 true 表示已接管，调用方应结束原逻辑。
+     */
+    public static boolean dropWholeMixed(Level level, BlockPos pos, BlockState state, Player player) {
+        boolean isMixed = state.getBlock() instanceof MixedSlabBlock;
+        if (!isMixed) {
+            return false;
+        }
+        BlockEntity be = level.getBlockEntity(pos);
+        Block a = Blocks.STONE_SLAB;
+        Block b = Blocks.STONE_SLAB;
+        if (be instanceof MixedSlabBlockEntity mixed) {
+            a = mixed.getFirstSlab();
+            b = mixed.getSecondSlab();
+        }
+        // 先读回材质再移除方块（方块实体随之被清理），保证掉落物正确
+        level.removeBlock(pos, false);
+        if (!player.getAbilities().instabuild) {
+            Block.popResource(level, pos, new ItemStack(a));
+            Block.popResource(level, pos, new ItemStack(b));
+        }
+        level.playSound(null, pos, state.getSoundType().getBreakSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
+        return true;
     }
 
     private static boolean breakMixedHalf(Level level, BlockPos pos, BlockState state, Player player) {
