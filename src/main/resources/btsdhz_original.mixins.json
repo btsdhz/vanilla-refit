@@ -22,7 +22,8 @@
   "client": [
     "TorchParticleMixin",
     "RedstoneTorchParticleMixin",
-    "MultiPlayerGameModeMixin"
+    "MultiPlayerGameModeMixin",
+    "RuntimeVerticalSlabModelMixin"
   ],
   "server": [
   ],
