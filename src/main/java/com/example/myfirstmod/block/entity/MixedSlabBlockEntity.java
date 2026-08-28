@@ -2,8 +2,12 @@ package com.example.myfirstmod.block.entity;
 
 import com.example.myfirstmod.ModBlockEntities;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -85,6 +89,25 @@ public class MixedSlabBlockEntity extends BlockEntity {
         super.saveAdditional(tag, registries);
         tag.putString("slab_a", BuiltInRegistries.BLOCK.getKey(this.slabA).toString());
         tag.putString("slab_b", BuiltInRegistries.BLOCK.getKey(this.slabB).toString());
+    }
+
+    /**
+     * 客户端从区块包/方块实体数据包里恢复实体时，使用的是 {@code getUpdateTag} 的网络数据
+     * （而非磁盘保存的 {@code saveAdditional}）。若不覆写，客户端收到的就是空 tag，
+     * 材质会退回默认石头。因此这里也写入两块材质。
+     */
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = super.getUpdateTag(registries);
+        tag.putString("slab_a", BuiltInRegistries.BLOCK.getKey(this.slabA).toString());
+        tag.putString("slab_b", BuiltInRegistries.BLOCK.getKey(this.slabB).toString());
+        return tag;
+    }
+
+    /** 放置/变更时向客户端同步实体数据（配合 {@code getUpdateTag}）。 */
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
     }
 
     private static Block readSlab(String id) {
