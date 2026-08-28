@@ -34,13 +34,14 @@ public abstract class MultiPlayerGameModeMixin {
         if (this.minecraft.level == null) {
             return;
         }
-        // 堆叠半砖（混合半砖或原版 DOUBLE）：不在客户端预测“拆半格”，交给服务端权威决定（避免闪回）
+        // 潜行拆堆叠半砖：客户端不预测“拆半格”，交给服务端权威返回“保留的那半”，避免闪回。
+        // 非潜行走原版整个拆除，客户端预测与服务端一致。
         var blockState = this.minecraft.level.getBlockState(pos);
         boolean isStackedSlab = blockState.getBlock() instanceof MixedSlabBlock
                 || (blockState.getBlock() instanceof SlabBlock
                 && blockState.hasProperty(SlabBlock.TYPE)
                 && blockState.getValue(SlabBlock.TYPE) == SlabType.DOUBLE);
-        if (isStackedSlab) {
+        if (this.minecraft.player != null && this.minecraft.player.isShiftKeyDown() && isStackedSlab) {
             cir.setReturnValue(false);
             cir.cancel();
             return;
