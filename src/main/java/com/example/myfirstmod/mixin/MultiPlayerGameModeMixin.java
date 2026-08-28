@@ -2,6 +2,8 @@ package com.example.myfirstmod.mixin;
 
 import com.example.myfirstmod.util.SlabSupport;
 import com.example.myfirstmod.block.MixedSlabBlock;
+import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.core.BlockPos;
@@ -32,8 +34,13 @@ public abstract class MultiPlayerGameModeMixin {
         if (this.minecraft.level == null) {
             return;
         }
-        // 混合半砖：不在客户端预测“拆半格”，交给服务端权威决定（避免闪回）
-        if (this.minecraft.level.getBlockState(pos).getBlock() instanceof MixedSlabBlock) {
+        // 堆叠半砖（混合半砖或原版 DOUBLE）：不在客户端预测“拆半格”，交给服务端权威决定（避免闪回）
+        var blockState = this.minecraft.level.getBlockState(pos);
+        boolean isStackedSlab = blockState.getBlock() instanceof MixedSlabBlock
+                || (blockState.getBlock() instanceof SlabBlock
+                && blockState.hasProperty(SlabBlock.TYPE)
+                && blockState.getValue(SlabBlock.TYPE) == SlabType.DOUBLE);
+        if (isStackedSlab) {
             cir.setReturnValue(false);
             cir.cancel();
             return;

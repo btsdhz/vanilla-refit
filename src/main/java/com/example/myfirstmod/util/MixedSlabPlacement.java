@@ -144,9 +144,8 @@ public final class MixedSlabPlacement {
 
     private static BlockState buildMergedState(VerticalSlabMode mode, SlabType type, Block a, Block b,
                                                BlockState target, Level level, BlockPos pos) {
-        FluidType fluid = target.hasProperty(ModBlockStateProperties.FLUID_TYPE)
-                ? target.getValue(ModBlockStateProperties.FLUID_TYPE)
-                : FluidType.NONE;
+        // 合并成堆叠/混合半砖后统一清空含液状态（与原版堆叠半砖一致）
+        FluidType fluid = FluidType.NONE;
         return ModBlocks.MERGED_SLAB.get().defaultBlockState()
                 .setValue(ModBlockStateProperties.MODE, mode)
                 .setValue(SlabBlock.TYPE, type)

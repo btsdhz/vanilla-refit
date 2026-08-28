@@ -30,14 +30,28 @@ public final class MixedSlabBreakHandler {
     }
 
     /**
-     * 尝试从混合半砖里拆掉被命中的那一半。
+     * 尝试从“堆叠半砖”里拆掉被命中的那一半。
+     *
+     * 覆盖两类：
+     *  - 混合半砖（不同材质，MixedSlabBlock）：一半留原样、一半写回原版半砖；
+     *  - 原版 DOUBLE（同材质，SlabBlock TYPE=DOUBLE）：拆掉一半，另一半写成该材质的单半砖。
      *
      * @return true 表示已完整处理（拆一半，保留另一半），调用方应返回 true 并结束原逻辑。
      */
     public static boolean tryBreakHalf(Level level, BlockPos pos, BlockState state, Player player) {
-        if (!(state.getBlock() instanceof MixedSlabBlock)) {
-            return false;
+        if (state.getBlock() instanceof MixedSlabBlock) {
+            return breakMixedHalf(level, pos, state, player);
         }
+        // 原版 DOUBLE（同材质堆叠半砖）
+        if (state.getBlock() instanceof SlabBlock
+                && state.hasProperty(SlabBlock.TYPE)
+                && state.getValue(SlabBlock.TYPE) == SlabType.DOUBLE) {
+            return breakDoubleHalf(level, pos, state, player);
+        }
+        return false;
+    }
+
+    private static boolean breakMixedHalf(Level level, BlockPos pos, BlockState state, Player player) {
         BlockEntity be = level.getBlockEntity(pos);
         if (!(be instanceof MixedSlabBlockEntity mixed)) {
             return false;
@@ -47,9 +61,25 @@ public final class MixedSlabBreakHandler {
         Block hitBlock = hitFirst ? mixed.getFirstSlab() : mixed.getSecondSlab();
         Block keepBlock = hitFirst ? mixed.getSecondSlab() : mixed.getFirstSlab();
 
-        // 保留的另一半朝向：与混合半砖该朝向一致的单半砖状态
         BlockState keepState = buildKeptState(keepBlock, state, hitFirst);
+        return applyBreak(level, pos, keepState, hitBlock, player);
+    }
 
+    private static boolean breakDoubleHalf(Level level, BlockPos pos, BlockState state, Player player) {
+        boolean hitFirst = isHitFirstHalf(level, pos, state, player);
+        // 原版 DOUBLE 的材质就是一个方块；保留另一半为该材质的单半砖
+        Block block = state.getBlock();
+        VerticalSlabMode mode = state.getValue(ModBlockStateProperties.MODE);
+        boolean keepTop = hitFirst;   // 拆了“第一半(下/北/西)”，剩下“第二半(上/南/东)”
+        BlockState keepState = block.defaultBlockState()
+                .setValue(ModBlockStateProperties.MODE, mode)
+                .setValue(SlabBlock.TYPE, keepTop ? SlabType.TOP : SlabType.BOTTOM)
+                .setValue(ModBlockStateProperties.FLUID_TYPE, FluidType.NONE);
+        return applyBreak(level, pos, keepState, block, player);
+    }
+
+    private static boolean applyBreak(Level level, BlockPos pos, BlockState keepState, Block hitBlock,
+                                      Player player) {
         // 一次性把整格替换为“保留的那一半”，方块实体会随之被移除，避免两次区块更新
         level.setBlock(pos, keepState, 3);
         // 播放被拆那块半砖的破坏音效（mixin 完全接管了原版流程，音效需手动补回）
