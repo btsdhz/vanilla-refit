@@ -8,6 +8,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.material.MapColor;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.function.Supplier;
@@ -35,7 +37,14 @@ public class ModBlocks {
     // 混合半砖：一格子里放两块不同材质的半砖（用方块实体存材质）
     public static final Supplier<Block> MERGED_SLAB =
             BLOCKS.register("merged_slab",
-                    () -> new MixedSlabBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.STONE).noOcclusion()));
+                    // 不复制石头的 requiresCorrectToolForDrops（默认 false），
+                    // 使混合半砖任何工具都能采集掉落两块半砖，避免整挖无掉落。
+                    () -> new MixedSlabBlock(
+                            BlockBehaviour.Properties.of()
+                                    .mapColor(MapColor.STONE)
+                                    .strength(1.5F, 6.0F)
+                                    .sound(SoundType.STONE)
+                                    .noOcclusion()));
 
     public static final Supplier<Item> MERGED_SLAB_ITEM =
             ITEMS.register("merged_slab",
