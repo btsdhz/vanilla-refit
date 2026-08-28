@@ -23,9 +23,15 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.SlabType;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -43,6 +49,9 @@ import org.jetbrains.annotations.Nullable;
  */
 public class MixedSlabBlock extends Block implements EntityBlock {
     public static final MapCodec<MixedSlabBlock> CODEC = simpleCodec(MixedSlabBlock::new);
+
+    /** 中键拾取时用于判断“点中哪一半”的缓存玩家（客户端每 tick 更新；服务端为 null）。 */
+    public static Player cachedPlayer;
 
     public MixedSlabBlock(Properties properties) {
         super(properties);
@@ -96,6 +105,43 @@ public class MixedSlabBlock extends Block implements EntityBlock {
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new MixedSlabBlockEntity(ModBlockEntities.MIXED_SLAB.get(), pos, state);
+    }
+
+    /** 中键拾取：返回“准星命中的那半”的半砖物品，避免返回无名结构物品。 */
+    @Override
+    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
+        if (level.getBlockEntity(pos) instanceof MixedSlabBlockEntity mixed) {
+            Block hit = mixed.getFirstSlab();
+            if (level.isClientSide() && cachedPlayer != null) {
+                boolean first = isHitFirstHalf(level, pos, state, cachedPlayer);
+                hit = first ? mixed.getFirstSlab() : mixed.getSecondSlab();
+            }
+            return new ItemStack(hit);
+        }
+        return super.getCloneItemStack(level, pos, state);
+    }
+
+    private static boolean isHitFirstHalf(LevelReader level, BlockPos pos, BlockState state, Player player) {
+        if (level instanceof Level l) {
+            Vec3 eye = player.getEyePosition();
+            Vec3 look = player.getViewVector(1.0F);
+            Vec3 end = eye.add(look.scale(6.0));
+            BlockHitResult hit = l.clip(new ClipContext(
+                    eye, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
+            if (hit.getBlockPos().equals(pos)) {
+                Vec3 loc = hit.getLocation();
+                double dx = loc.x - pos.getX();
+                double dz = loc.z - pos.getZ();
+                double dy = loc.y - pos.getY();
+                VerticalSlabMode mode = state.getValue(ModBlockStateProperties.MODE);
+                return switch (mode) {
+                    case SLAB -> dy < 0.5;
+                    case VERTICAL_NS -> dz < 0.5;
+                    case VERTICAL_EW -> dx < 0.5;
+                };
+            }
+        }
+        return true;
     }
 
     /** 拆除整块混合半砖时：释放两块半砖的掉落物（创造模式不掉落）。 */

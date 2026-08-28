@@ -103,6 +103,10 @@ public class ModBlockStateProvider extends BlockStateProvider {
                 }
             }
         }
+
+        // 物品模型：中键/其它途径拿到 merged_slab 时显示占位图标，避免紫黑块
+        itemModels().getBuilder("merged_slab")
+                .parent(new ModelFile.UncheckedModelFile(ResourceLocation.parse("btsdhz_original:block/merged_slab")));
     }
 
     private boolean isHandAuthSlab(Block slab) {

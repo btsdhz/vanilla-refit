@@ -2,6 +2,7 @@ package com.example.myfirstmod.client;
 
 import com.example.myfirstmod.BtsdhzOriginal;
 import com.example.myfirstmod.ModEntities;
+import com.example.myfirstmod.block.MixedSlabBlock;
 import com.example.myfirstmod.client.renderer.FenceKnotRenderer;
 import com.example.myfirstmod.client.renderer.SitEntityRenderer;
 import com.example.myfirstmod.network.SitTogglePayload;
@@ -31,8 +32,10 @@ public final class ModClientEvents {
     public static void onClientTick(ClientTickEvent.Pre event) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) {
+            MixedSlabBlock.cachedPlayer = null;
             return;
         }
+        MixedSlabBlock.cachedPlayer = mc.player;
 
         if (mc.screen == null && ModKeyBindings.consumeSit()) {
             PacketDistributor.sendToServer(new SitTogglePayload());

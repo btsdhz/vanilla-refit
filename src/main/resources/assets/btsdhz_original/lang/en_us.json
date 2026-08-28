@@ -1,6 +1,8 @@
 {
   "itemGroup.btsdhz_original": "Example Mod Tab",
   "block.btsdhz_original.example_block": "Example Block",
+  "block.btsdhz_original.merged_slab": "Mixed Slab",
+  "item.btsdhz_original.merged_slab": "Mixed Slab",
   "item.btsdhz_original.example_item": "Example Item",
   "entity.btsdhz_original.fence_knot": "Fence Rope",
   "key.categories.btsdhz_original": "Monkey & Original Changes",
