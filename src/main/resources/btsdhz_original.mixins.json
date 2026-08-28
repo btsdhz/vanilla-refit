@@ -5,6 +5,7 @@
   "mixins": [
     "SlabBlockMixin",
     "OnSlabCollisionMixin",
+    "OnSlabPickBlockMixin",
     "BlockItemMixin",
     "BucketMixin",
     "StairBlockMixin",
