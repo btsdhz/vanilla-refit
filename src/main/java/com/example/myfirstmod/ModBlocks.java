@@ -43,8 +43,7 @@ public class ModBlocks {
                             BlockBehaviour.Properties.of()
                                     .mapColor(MapColor.STONE)
                                     .strength(1.5F, 6.0F)
-                                    .sound(SoundType.STONE)
-                                    .noOcclusion()));
+                                    .sound(SoundType.STONE)));
 
     public static final Supplier<Item> MERGED_SLAB_ITEM =
             ITEMS.register("merged_slab",

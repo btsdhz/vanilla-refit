@@ -70,23 +70,57 @@ public class MixedSlabModel extends BakedModelWrapper<BakedModel> {
         BakedModel modelA = mc.getBlockRenderer().getBlockModel(stateA);
         BakedModel modelB = mc.getBlockRenderer().getBlockModel(stateB);
 
+        // 两块半砖相接处的“内部面”不应渲染，否则会看到砖内部的接缝面
+        VerticalSlabMode mode = state.getValue(ModBlockStateProperties.MODE);
+        Direction internalA = getInternalFaceDirection(mode, true);
+        Direction internalB = getInternalFaceDirection(mode, false);
+
         if (renderType == null) {
             // 非区块渲染（如工具提示/inventory）：取全部两块
             List<BakedQuad> merged = new ArrayList<>();
-            merged.addAll(modelA.getQuads(stateA, side, random, ModelData.EMPTY, null));
-            merged.addAll(modelB.getQuads(stateB, side, random, ModelData.EMPTY, null));
+            merged.addAll(filterInternalFaces(modelA.getQuads(stateA, side, random, ModelData.EMPTY, null), internalA));
+            merged.addAll(filterInternalFaces(modelB.getQuads(stateB, side, random, ModelData.EMPTY, null), internalB));
             return merged;
         }
 
         // 区块渲染：只取属于当前 renderType 的那块半砖的几何，避免不同图层错位叠加
         List<BakedQuad> merged = new ArrayList<>();
         if (modelA.getRenderTypes(stateA, random, ModelData.EMPTY).contains(renderType)) {
-            merged.addAll(modelA.getQuads(stateA, side, random, ModelData.EMPTY, renderType));
+            merged.addAll(filterInternalFaces(modelA.getQuads(stateA, side, random, ModelData.EMPTY, renderType), internalA));
         }
         if (modelB.getRenderTypes(stateB, random, ModelData.EMPTY).contains(renderType)) {
-            merged.addAll(modelB.getQuads(stateB, side, random, ModelData.EMPTY, renderType));
+            merged.addAll(filterInternalFaces(modelB.getQuads(stateB, side, random, ModelData.EMPTY, renderType), internalB));
         }
         return merged;
+    }
+
+    /**
+     * 混合半砖中，某块半砖“朝向另一块半砖”的内部面方向。该方向上的面在合并后应被剔除，
+     * 否则两块半砖相接处会渲染出接缝面。
+     *  - MODE=SLAB：A=下半(内部朝上 UP)，B=上半(内部朝下 DOWN)。
+     *  - MODE=VERTICAL_NS：A=北半(内部朝南 SOUTH)，B=南半(内部朝北 NORTH)。
+     *  - MODE=VERTICAL_EW：A=西半(内部朝东 EAST)，B=东半(内部朝西 WEST)。
+     */
+    private static Direction getInternalFaceDirection(VerticalSlabMode mode, boolean isFirst) {
+        return switch (mode) {
+            case SLAB -> isFirst ? Direction.UP : Direction.DOWN;
+            case VERTICAL_NS -> isFirst ? Direction.SOUTH : Direction.NORTH;
+            case VERTICAL_EW -> isFirst ? Direction.EAST : Direction.WEST;
+        };
+    }
+
+    /** 去掉朝向 {@code internalDir} 的面几何。 */
+    private static List<BakedQuad> filterInternalFaces(List<BakedQuad> quads, Direction internalDir) {
+        if (internalDir == null || quads.isEmpty()) {
+            return quads;
+        }
+        List<BakedQuad> filtered = new ArrayList<>(quads.size());
+        for (BakedQuad quad : quads) {
+            if (quad.getDirection() != internalDir) {
+                filtered.add(quad);
+            }
+        }
+        return filtered;
     }
 
     @Override
