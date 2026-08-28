@@ -27,37 +27,59 @@ public final class MixedSlabPlacement {
     }
 
     /**
-     * 尝试在 clickedPos 处把 targetState 与新块 block 合并成混合半砖。
+     * 点击“半砖自身朝向空余半砖空间的那一面”时，把它与新块 block 合并成混合半砖。
      *
-     * @return 是否成功放到混合半砖；失败时不要做任何改动。
+     * 空余空间方向 emptyFace 由目标半砖朝向决定。allowedOpposite=true 时也允许点击
+     * 空余空间的反向面（可由调用方区分“点半砖本体”与“点邻居方块的面”两种走到这里的路径）。
+     *
+     * @return 是否成功合并。
      */
     public static boolean tryMerge(Level level, BlockPos pos, BlockState targetState, Block block,
-                                   Direction clickedFace, Block entityBlock) {
-        if (!(targetState.getBlock() instanceof SlabBlock)) {
+                                   Direction clickedFace, boolean allowedOpposite) {
+        if (!isMergeableHalf(targetState, block)) {
             return false;
         }
-        if (targetState.getBlock() == block) {
+        Direction emptyFace = emptyFaceOf(orientationOf(targetState));
+        boolean faceOk = clickedFace == emptyFace
+                || (allowedOpposite && clickedFace == emptyFace.getOpposite());
+        if (!faceOk) {
+            return false;
+        }
+        return merge(level, pos, targetState, block);
+    }
+
+    /**
+     * 从“空余半砖空间”那边的相邻方块发起合并：点击 emptyPos（=slabPos.offset(emptyFace)）
+     * 处方块朝向本格空余空间的那一面时，把本格半砖合并为混合半砖。
+     */
+    public static boolean tryMergeFromNeighbor(Level level, BlockPos slabPos, BlockState targetState,
+                                               BlockPos emptyPos, Block block, Direction clickedFace) {
+        if (!isMergeableHalf(targetState, block)) {
+            return false;
+        }
+        Direction emptyFace = emptyFaceOf(orientationOf(targetState));
+        // 本格空余空间在 emptyFace 那侧，从 emptyPos(=slabPos.offset(emptyFace)) 点击
+        // 朝向本格的面，即 clickedFace == emptyFace.getOpposite()。
+        return clickedFace == emptyFace.getOpposite()
+                && merge(level, slabPos, targetState, block);
+    }
+
+    private static boolean isMergeableHalf(BlockState state, Block block) {
+        if (!(state.getBlock() instanceof SlabBlock)) {
+            return false;
+        }
+        if (state.getBlock() == block) {
             return false;   // 同材质走原版 DOUBLE 合并，不进混合半砖
         }
-        if (!targetState.hasProperty(ModBlockStateProperties.MODE)) {
-            return false;
-        }
+        return state.hasProperty(ModBlockStateProperties.MODE);
+    }
 
-        // 现有半砖是哪一半
+    private static boolean merge(Level level, BlockPos pos, BlockState targetState, Block block) {
         int existing = orientationOf(targetState);
         if (existing < 0) {
             return false;
         }
-
-        // 新半砖要放到对向那半边
-        int newOrientation = oppositeOf(existing, clickedFace);
-        if (newOrientation < 0) {
-            return false;
-        }
-
-        ParticleOrientation o1 = orientation(existing);
-        ParticleOrientation o2 = orientation(newOrientation);
-
+        int newOrientation = oppositeOf(existing);
         Block a;       // 较小编号的一半
         Block b;       // 较大编号的一半
         if (existing < newOrientation) {
@@ -68,6 +90,7 @@ public final class MixedSlabPlacement {
             b = targetState.getBlock();
         }
 
+        ParticleOrientation o1 = orientation(existing);
         BlockState mergedState = buildMergedState(o1.mode(), o1.type(), a, b, targetState, level, pos);
         if (level.setBlock(pos, mergedState, 3)) {
             if (level.getBlockEntity(pos) instanceof MixedSlabBlockEntity mixed) {
@@ -79,20 +102,27 @@ public final class MixedSlabPlacement {
         return false;
     }
 
-    /** 依据目标半砖现有朝向 + 被点击的面，推断新半砖应放的朝向编号。 */
-    private static int oppositeOf(int existing, Direction clickedFace) {
-        if (existing == 0 || existing == 1) {
-            // 水平：现有 BOTTOM 时点 UP 放 TOP(1)；现有 TOP 时点 DOWN 放 BOTTOM(0)
-            return existing == 0 ? 1 : 0;
-        }
-        if (existing == 2 || existing == 3) {
-            // 竖南北：北(2)↔南(3)，需点击其薄面
-            return existing == 2 ? 3 : 2;
-        }
-        if (existing == 4 || existing == 5) {
-            return existing == 4 ? 5 : 4;
-        }
-        return -1;
+    /** 半砖“缺的那一半”朝向哪一面（即空余半砖空间所在方向）。 */
+    private static Direction emptyFaceOf(int code) {
+        return switch (code) {
+            case 0 -> Direction.UP;     // 平放下半：空余在上
+            case 1 -> Direction.DOWN;   // 平放上半：空余在下
+            case 2 -> Direction.SOUTH;  // 竖南北、北半：空余在南
+            case 3 -> Direction.NORTH;  // 竖南北、南半：空余在北
+            case 4 -> Direction.EAST;   // 竖东西、西半：空余在东
+            default -> Direction.WEST;  // 竖东西、东半：空余在西
+        };
+    }
+
+    private static int oppositeOf(int code) {
+        return switch (code) {
+            case 0 -> 1;
+            case 1 -> 0;
+            case 2 -> 3;
+            case 3 -> 2;
+            case 4 -> 5;
+            default -> 4;
+        };
     }
 
     private static BlockState buildMergedState(VerticalSlabMode mode, SlabType type, Block a, Block b,

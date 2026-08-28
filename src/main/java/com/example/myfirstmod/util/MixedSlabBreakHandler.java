@@ -9,6 +9,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -51,6 +52,9 @@ public final class MixedSlabBreakHandler {
 
         // 一次性把整格替换为“保留的那一半”，方块实体会随之被移除，避免两次区块更新
         level.setBlock(pos, keepState, 3);
+        // 播放被拆那块半砖的破坏音效（mixin 完全接管了原版流程，音效需手动补回）
+        level.playSound(null, pos, hitBlock.defaultBlockState().getSoundType().getBreakSound(),
+                SoundSource.BLOCKS, 1.0F, 1.0F);
         // 只掉落被拆的那一块
         if (!player.getAbilities().instabuild) {
             Block.popResource(level, pos, new ItemStack(hitBlock));

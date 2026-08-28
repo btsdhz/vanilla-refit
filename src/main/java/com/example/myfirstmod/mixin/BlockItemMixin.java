@@ -52,18 +52,40 @@ public abstract class BlockItemMixin {
         boolean creative = player != null && player.getAbilities().instabuild;
 
         // ---- 0. 往已有半砖放“不同材质”时，合并成一格混合半砖 ----
+        // 触发条件：点击“朝向空余半砖空间的那一面”。分两种情况：
+        //  a) 直接点击半砖本体朝空余空间的面；
+        //  b) 点击空余半砖空间旁边某个方块、且该方块的面朝向半砖的空余空间。
         BlockState targetAtPos = level.getBlockState(clickedPos);
         if (targetAtPos.getBlock() instanceof SlabBlock
                 && targetAtPos.hasProperty(ModBlockStateProperties.MODE)
                 && targetAtPos.getBlock() != block) {
-            if (MixedSlabPlacement.tryMerge(level, clickedPos, targetAtPos, block, clickedFace, block)) {
-                level.playSound(null, clickedPos, targetAtPos.getSoundType().getPlaceSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
+            // 直接点半砖本体，只认“朝空余空间的面”
+            if (MixedSlabPlacement.tryMerge(level, clickedPos, targetAtPos, block, clickedFace, false)) {
                 if (!creative) {
                     stack.shrink(1);
                 }
                 cir.setReturnValue(InteractionResult.SUCCESS);
                 cir.cancel();
                 return;
+            }
+        }
+        // 点击相邻方块的面，若该面朝向某个半砖的空余空间，则从那边合并
+        BlockPos neighborPos = clickedPos.relative(clickedFace);
+        if (!neighborPos.equals(clickedPos)) {
+            BlockState neighborState = level.getBlockState(neighborPos);
+            if (neighborState.getBlock() instanceof SlabBlock
+                    && neighborState.hasProperty(ModBlockStateProperties.MODE)
+                    && neighborState.getBlock() != block) {
+                // 点击面朝该半砖空余空间
+                if (MixedSlabPlacement.tryMergeFromNeighbor(level, neighborPos, neighborState,
+                        clickedPos, block, clickedFace)) {
+                    if (!creative) {
+                        stack.shrink(1);
+                    }
+                    cir.setReturnValue(InteractionResult.SUCCESS);
+                    cir.cancel();
+                    return;
+                }
             }
         }
 
