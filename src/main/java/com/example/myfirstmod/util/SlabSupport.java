@@ -1,7 +1,9 @@
 package com.example.myfirstmod.util;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.SlabType;
@@ -20,11 +22,22 @@ public final class SlabSupport {
     }
 
     /**
+     * @return 该台阶方块是否属于本模组支持的命名空间（minecraft / btsdhz_original）。
+     * 只有这些台阶我们生成了竖台阶模型（btsdhz_original:block/vertical_slab_*_&lt;id&gt;），
+     * 其它模组的台阶不应用本模组的竖放/液体/火把贴合等任何逻辑，保持原版行为。
+     */
+    public static boolean isSupportedSlab(Block block) {
+        String namespace = BuiltInRegistries.BLOCK.getKey(block).getNamespace();
+        return namespace.equals("minecraft") || namespace.equals("btsdhz_original");
+    }
+
+    /**
      * @return pos 处是否为普通水平下半台阶
      */
     public static boolean isBottomSlab(BlockGetter level, BlockPos pos) {
         BlockState state = level.getBlockState(pos);
         return state.getBlock() instanceof SlabBlock
+                && isSupportedSlab(state.getBlock())
                 && state.hasProperty(ModBlockStateProperties.MODE)
                 && state.getValue(ModBlockStateProperties.MODE) == VerticalSlabMode.SLAB
                 && state.hasProperty(SlabBlock.TYPE)
@@ -37,6 +50,7 @@ public final class SlabSupport {
     public static boolean isTopSlab(BlockGetter level, BlockPos pos) {
         BlockState state = level.getBlockState(pos);
         return state.getBlock() instanceof SlabBlock
+                && isSupportedSlab(state.getBlock())
                 && state.hasProperty(ModBlockStateProperties.MODE)
                 && state.getValue(ModBlockStateProperties.MODE) == VerticalSlabMode.SLAB
                 && state.hasProperty(SlabBlock.TYPE)

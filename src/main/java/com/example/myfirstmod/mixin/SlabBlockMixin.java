@@ -3,6 +3,7 @@ package com.example.myfirstmod.mixin;
 import com.example.myfirstmod.util.FluidType;
 import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.ModTags;
+import com.example.myfirstmod.util.SlabSupport;
 import com.example.myfirstmod.util.VerticalSlabMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -75,6 +76,10 @@ public abstract class SlabBlockMixin {
     // ===== 2. 放置状态 =====
     @Inject(method = "getStateForPlacement", at = @At("RETURN"), cancellable = true, remap = false)
     private void btsdhz_original$getStateForPlacement(BlockPlaceContext context, CallbackInfoReturnable<BlockState> cir) {
+        // 其它模组的台阶：不应用本模组的竖放/液体逻辑，保持原版
+        if (!SlabSupport.isSupportedSlab((Block) (Object) this)) {
+            return;
+        }
         BlockState original = cir.getReturnValue();
         if (original == null) return;
 
@@ -130,6 +135,9 @@ public abstract class SlabBlockMixin {
     // ===== 3. 返回流体状态 =====
     @Inject(method = "getFluidState", at = @At("HEAD"), cancellable = true, remap = false)
     private void btsdhz_original$getFluidState(BlockState state, CallbackInfoReturnable<FluidState> cir) {
+        if (!SlabSupport.isSupportedSlab((Block) (Object) this)) {
+            return;
+        }
         if (state.hasProperty(ModBlockStateProperties.FLUID_TYPE)) {
             FluidType fluidType = state.getValue(ModBlockStateProperties.FLUID_TYPE);
             if (fluidType == FluidType.WATER) {
@@ -158,6 +166,9 @@ public abstract class SlabBlockMixin {
     // ===== 5. 碰撞箱 =====
     @Inject(method = "getShape", at = @At("RETURN"), cancellable = true, remap = false)
     private void btsdhz_original$getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context, CallbackInfoReturnable<VoxelShape> cir) {
+        if (!SlabSupport.isSupportedSlab((Block) (Object) this)) {
+            return;
+        }
         if (state.hasProperty(ModBlockStateProperties.MODE)) {
             VerticalSlabMode mode = state.getValue(ModBlockStateProperties.MODE);
             if (mode == VerticalSlabMode.VERTICAL_NS || mode == VerticalSlabMode.VERTICAL_EW) {
@@ -202,6 +213,9 @@ public abstract class SlabBlockMixin {
     // ===== 6. 不可替换 =====
     @Inject(method = "canBeReplaced", at = @At("HEAD"), cancellable = true, remap = false)
     private void btsdhz_original$canBeReplaced(BlockState state, BlockPlaceContext context, CallbackInfoReturnable<Boolean> cir) {
+        if (!SlabSupport.isSupportedSlab((Block) (Object) this)) {
+            return;
+        }
         if (state.hasProperty(ModBlockStateProperties.MODE)) {
             VerticalSlabMode mode = state.getValue(ModBlockStateProperties.MODE);
             if (mode != VerticalSlabMode.SLAB) {
@@ -215,6 +229,9 @@ public abstract class SlabBlockMixin {
     @Inject(method = "canPlaceLiquid", at = @At("HEAD"), cancellable = true, remap = false)
     private void btsdhz_original$canPlaceLiquid(@Nullable Player player, BlockGetter level, BlockPos pos, BlockState state, Fluid fluid,
                                                 CallbackInfoReturnable<Boolean> cir) {
+        if (!SlabSupport.isSupportedSlab((Block) (Object) this)) {
+            return;
+        }
         if (state.hasProperty(ModBlockStateProperties.FLUID_TYPE)) {
             // 黑名单台阶不能容纳熔岩
             if (fluid == Fluids.LAVA && state.is(ModTags.LAVA_BLACKLIST_SLABS)) {
@@ -231,6 +248,9 @@ public abstract class SlabBlockMixin {
     @Inject(method = "placeLiquid", at = @At("HEAD"), cancellable = true, remap = false)
     private void btsdhz_original$placeLiquid(LevelAccessor level, BlockPos pos, BlockState state, FluidState fluidState,
                                              CallbackInfoReturnable<Boolean> cir) {
+        if (!SlabSupport.isSupportedSlab((Block) (Object) this)) {
+            return;
+        }
         if (state.hasProperty(ModBlockStateProperties.FLUID_TYPE)) {
             FluidType fluidType = state.getValue(ModBlockStateProperties.FLUID_TYPE);
             if (fluidType == FluidType.NONE && (fluidState.getType() == Fluids.WATER || fluidState.getType() == Fluids.LAVA)) {
