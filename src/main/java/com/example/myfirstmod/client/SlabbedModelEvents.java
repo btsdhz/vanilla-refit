@@ -2,7 +2,7 @@ package com.example.myfirstmod.client;
 
 import com.example.myfirstmod.client.model.SlabbedLoweringModel;
 import com.example.myfirstmod.client.model.MixedSlabModel;
-import com.example.myfirstmod.mixin.RuntimeVerticalSlabModelMixin;
+import com.example.myfirstmod.client.model.RuntimeVerticalSlabCache;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.resources.model.BakedModel;
@@ -24,7 +24,7 @@ public class SlabbedModelEvents {
 
     public static void onModifyBakingResult(ModelEvent.ModifyBakingResult event) {
         // 下一次烘焙前清掉之前生成的竖半砖运行时模型缓存，避免引用过期模型
-        RuntimeVerticalSlabModelMixin.clearCache();
+        RuntimeVerticalSlabCache.clear();
 
         List<ModelResourceLocation> toWrap = new ArrayList<>();
         for (ModelResourceLocation loc : event.getModels().keySet()) {

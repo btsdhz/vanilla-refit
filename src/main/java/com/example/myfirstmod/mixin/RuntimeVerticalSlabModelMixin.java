@@ -4,11 +4,11 @@ import com.example.myfirstmod.client.model.VerticalSlabRuntimeModel;
 import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.VerticalSlabMode;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import com.example.myfirstmod.client.model.RuntimeVerticalSlabCache;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -30,9 +30,6 @@ public abstract class RuntimeVerticalSlabModelMixin {
     @Shadow(remap = false)
     private Map<BlockState, BakedModel> modelByStateCache;
 
-    /** 运行时生成的竖半砖模型缓存（资源重载时清空）。 */
-    private static final Map<BlockState, BakedModel> RUNTIME_CACHE = new ConcurrentHashMap<>();
-
     @Inject(method = "getBlockModel", at = @At("HEAD"), cancellable = true, remap = false)
     private void btsdhz_original$getBlockModel(BlockState state, CallbackInfoReturnable<BakedModel> cir) {
         if (!(state.getBlock() instanceof SlabBlock)
@@ -44,7 +41,7 @@ public abstract class RuntimeVerticalSlabModelMixin {
             return;
         }
 
-        BakedModel cached = RUNTIME_CACHE.get(state);
+        BakedModel cached = RuntimeVerticalSlabCache.get(state);
         if (cached != null) {
             cir.setReturnValue(cached);
             return;
@@ -62,12 +59,7 @@ public abstract class RuntimeVerticalSlabModelMixin {
         }
 
         BakedModel vertical = new VerticalSlabRuntimeModel(flat, mode);
-        RUNTIME_CACHE.put(state, vertical);
+        RuntimeVerticalSlabCache.put(state, vertical);
         cir.setReturnValue(vertical);
-    }
-
-    /** 资源重载 / 模型重新烘焙时清掉生成的缓存，避免引用到过期模型。 */
-    public static void clearCache() {
-        RUNTIME_CACHE.clear();
     }
 }
