@@ -66,6 +66,13 @@ public abstract class SlabBlockMixin {
             Block.box(5.0, 8.0, 5.0, 11.0, 15.0, 11.0),
             Block.box(6.0, 15.0, 6.0, 10.0, 17.0, 10.0));
 
+    /**
+     * 栅栏/墙舒适框：上方是下移栅栏/墙时使用。栅栏立柱 X/Z 6~10（与火把立柱同宽），
+     * 墙柱虽更宽，但中心立柱也可用此框命中。Y 8~18（台阶格上半格 + 略上）。
+     */
+    @Unique
+    private static final VoxelShape COMFORT_FENCE = Block.box(6.0, 8.0, 6.0, 10.0, 18.0, 10.0);
+
     // ===== 1. 注册属性 =====
     @Inject(method = "createBlockStateDefinition", at = @At("RETURN"), remap = false)
     private void btsdhz_original$createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder, CallbackInfo ci) {
@@ -184,26 +191,29 @@ public abstract class SlabBlockMixin {
                 cir.setReturnValue(shape);
             } else if (mode == VerticalSlabMode.SLAB
                     && state.getValue(SlabBlock.TYPE) == SlabType.BOTTOM) {
-                BlockState above = getLoweredTorchOrLantern(level, pos);
+                BlockState above = getLoweredOnSlabBlock(level, pos);
                 if (above != null) {
-                    // 普通下半台阶 + 上方下移火把/灯笼：拾取形状并入对应舒适框
-                    boolean lantern = above.is(ModTags.ON_SLAB_LANTERN);
-                    cir.setReturnValue(Shapes.or(cir.getReturnValue(),
-                            lantern ? COMFORT_LANTERN : COMFORT_TORCH));
+                    // 普通下半台阶 + 上方下移方块（火把/灯笼/栅栏/墙）：拾取形状并入对应舒适框
+                    VoxelShape comfort;
+                    if (above.is(ModTags.ON_SLAB_LANTERN)) {
+                        comfort = COMFORT_LANTERN;
+                    } else if (above.is(ModTags.ON_SLAB_TORCH)) {
+                        comfort = COMFORT_TORCH;
+                    } else {
+                        comfort = COMFORT_FENCE;
+                    }
+                    cir.setReturnValue(Shapes.or(cir.getReturnValue(), comfort));
                 }
             }
         }
     }
 
-    // 返回 pos 上方是否为“下移（ON_SLAB=true）的普通火把/灵魂火把/灯笼/灵魂灯笼”；
+    // 返回 pos 上方是否为“下移（ON_SLAB=true）的方块”（火把/灯笼/栅栏/墙等）；
     // 是则返回该上方方块态，否则返回 null。
     @Unique
-    private static BlockState getLoweredTorchOrLantern(BlockGetter level, BlockPos pos) {
+    private static BlockState getLoweredOnSlabBlock(BlockGetter level, BlockPos pos) {
         BlockState above = level.getBlockState(pos.above());
-        boolean isTorch = above.is(ModTags.ON_SLAB_TORCH);
-        boolean isLantern = above.is(ModTags.ON_SLAB_LANTERN);
-        if ((isTorch || isLantern)
-                && above.hasProperty(ModBlockStateProperties.ON_SLAB)
+        if (above.hasProperty(ModBlockStateProperties.ON_SLAB)
                 && above.getValue(ModBlockStateProperties.ON_SLAB)) {
             return above;
         }

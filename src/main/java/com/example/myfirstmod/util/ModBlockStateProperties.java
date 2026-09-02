@@ -2,6 +2,7 @@ package com.example.myfirstmod.util;
 
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.block.state.properties.Property;
 
 public class ModBlockStateProperties {
     public static final EnumProperty<VerticalSlabMode> MODE =
@@ -20,8 +21,9 @@ public class ModBlockStateProperties {
 
     // 火把/灵魂火把/灯笼/灵魂灯笼是否放在“下台阶”（下半台阶）上。
     // true 时模型与碰撞箱整体下移半格，与下台阶的上表面贴合。
-    public static final BooleanProperty ON_SLAB =
-            BooleanProperty.create("btsdhz_on_slab");
+    // 用默认 false 的属性，避免旧存档/未显式保存该属性的方块读取时默认成 true（误判下移）。
+    public static final Property<Boolean> ON_SLAB =
+            new DefaultFalseBooleanProperty("btsdhz_on_slab");
 
     // 灯笼/灵魂灯笼是否放在“上台阶”（上半台阶）下方。
     // true 时模型与碰撞箱整体上移半格，悬挂贴合上台阶的底面。

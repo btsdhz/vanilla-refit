@@ -2,7 +2,6 @@ package com.example.myfirstmod.mixin;
 
 import com.example.myfirstmod.block.MixedSlabBlock;
 import com.example.myfirstmod.util.ModBlockStateProperties;
-import com.example.myfirstmod.util.ModTags;
 import com.example.myfirstmod.util.SlabSupport;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
@@ -21,14 +20,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * 修正“下台阶上的下移光源（火把/灵魂火把/红石火把/灯笼）”的中键拾取。
+ * 修正“下台阶上的下移方块（火把/灵魂火把/红石火把/灯笼/栅栏/墙）”的中键拾取。
  *
- * <p>背景：半砖为了能点到上方光源，在 {@code getShape}（OUTLINE）里并入了“舒适框”，
- * 因此准星指向光源区域时，拾取射线命中的其实是<b>半砖</b>（而非光源方块），
+ * <p>背景：半砖为了能点到上方方块，在 {@code getShape}（OUTLINE）里并入了“舒适框”，
+ * 因此准星指向上方方块区域时，拾取射线命中的其实是<b>半砖</b>（而非上方方块），
  * 中键拾取会返回半砖物品。这里在 {@code Block.getCloneItemStack} 里把该情况改判：
- * 瞄准“下移光源”命中半砖时，返还上方的光源物品，而不是半砖。
+ * 瞄准“下移方块”命中半砖时，返还上方的方块物品，而不是半砖。
  *
- * <p>只对“普通水平下半台阶 + 上方下移光源 + 玩家准星落在光源/舒适框区域”生效；
+ * <p>只对“普通水平下半台阶 + 上方下移方块 + 玩家准星落在方块/舒适框区域”生效；
  * 瞄准半砖下半部分仍返回半砖，其余方块保持默认行为。
  */
 @Mixin(Block.class)
@@ -49,32 +48,29 @@ public abstract class OnSlabPickBlockMixin {
         }
 
         BlockState above = level.getBlockState(pos.above());
-        if (!isLoweredTorchOrLantern(above)) {
+        if (!isLoweredOnSlabBlock(above)) {
             return;
         }
 
         Player player = MixedSlabBlock.cachedPlayer;
-        if (player == null || !aimsAtOnSlabLight(level, pos, player)) {
+        if (player == null || !aimsAtOnSlabBlock(level, pos, player)) {
             return;
         }
 
         cir.setReturnValue(new ItemStack(above.getBlock()));
     }
 
-    /** 上方方块是否为“下移（ON_SLAB=true）的光源”。 */
-    private static boolean isLoweredTorchOrLantern(BlockState state) {
-        boolean isTorch = state.is(ModTags.ON_SLAB_TORCH);
-        boolean isLantern = state.is(ModTags.ON_SLAB_LANTERN);
-        return (isTorch || isLantern)
-                && state.hasProperty(ModBlockStateProperties.ON_SLAB)
+    /** 上方方块是否为“下移（ON_SLAB=true）的方块”。 */
+    private static boolean isLoweredOnSlabBlock(BlockState state) {
+        return state.hasProperty(ModBlockStateProperties.ON_SLAB)
                 && state.getValue(ModBlockStateProperties.ON_SLAB);
     }
 
     /**
-     * 玩家准星是否落在半砖上方的“光源/舒适框”区域。
-     * 命中光源方块本身，或命中半砖的上半格（舒适框）都算。
+     * 玩家准星是否落在半砖上方的“方块/舒适框”区域。
+     * 命中上方方块本身，或命中半砖的上半格（舒适框）都算。
      */
-    private static boolean aimsAtOnSlabLight(LevelReader level, BlockPos pos, Player player) {
+    private static boolean aimsAtOnSlabBlock(LevelReader level, BlockPos pos, Player player) {
         if (!(level instanceof Level l)) {
             return false;
         }

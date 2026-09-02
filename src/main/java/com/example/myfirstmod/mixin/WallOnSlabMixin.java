@@ -73,8 +73,8 @@ public abstract class WallOnSlabMixin {
      */
     private VoxelShape resolveShape(Map<BlockState, VoxelShape> map, BlockState state) {
         boolean onSlab = SlabSupport.isOnSlab(state);
-        // map 键只登记了 ON_SLAB=true（默认值），统一用 true 命中基础形状
-        BlockState lookup = state.setValue(ModBlockStateProperties.ON_SLAB, true);
+        // ON_SLAB 默认 false，故 map 键只登记 ON_SLAB=false；统一用 false 命中基础形状
+        BlockState lookup = state.setValue(ModBlockStateProperties.ON_SLAB, false);
         VoxelShape base = map.get(lookup);
         if (base == null) {
             return null;

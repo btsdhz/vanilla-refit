@@ -47,7 +47,7 @@ public abstract class MultiPlayerGameModeMixin {
             return;
         }
         if (SlabSupport.isBottomSlab(this.minecraft.level, pos)
-                && SlabSupport.isLoweredTorchOrLanternAbove(this.minecraft.level, pos)) {
+                && SlabSupport.isLoweredOnSlabAbove(this.minecraft.level, pos)) {
             // 改拆上方的火把/灯笼，客户端预测与服务端一致
             cir.setReturnValue(this.destroyBlock(pos.above()));
             cir.cancel();

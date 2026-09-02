@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * 统一修正“放在下台阶上的下移光源（火把/灵魂火把/红石火把/灯笼）”的碰撞判定。
+ * 统一修正“放在下台阶上的下移方块（火把/灵魂火把/红石火把/灯笼/栅栏/墙）”的碰撞判定。
  *
  * <p>背景：交互瞄准（OUTLINE）走的是 {@code getShape}，所以“舒适框”仍并入
  * {@code getShape} 才能点得到；但碰撞/遮挡/视觉形状默认继承 {@code getCollisionShape}。
@@ -29,8 +29,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * <p>这里在 {@code BlockBehaviour.getCollisionShape}（唯一的声明处，各子类都未覆写）
  * 统一守卫：
  * <ul>
- *   <li>普通水平下半台阶 + 上方下移光源：碰撞形状还原为不带舒适框的下半台阶；</li>
- *   <li>任何 ON_SLAB=true 的下移光源：碰撞形状置空（只保留 {@code getShape} 交互）。</li>
+ *   <li>普通水平下半台阶 + 上方下移方块：碰撞形状还原为不带舒适框的下半台阶；</li>
+ *   <li>火把类（ON_SLAB_TORCH）下移/上移：碰撞形状置空（只保留 {@code getShape} 交互）；
+ *       灯笼/栅栏/墙是需要阻挡的方块，仍保留物理碰撞。</li>
  * </ul>
  */
 @Mixin(BlockBehaviour.class)
@@ -42,25 +43,24 @@ public abstract class OnSlabCollisionMixin {
     @Inject(method = "getCollisionShape", at = @At("RETURN"), cancellable = true, remap = false)
     private void btsdhz_original$getCollisionShape(BlockState state, BlockGetter level, BlockPos pos,
                                                    CollisionContext context, CallbackInfoReturnable<VoxelShape> cir) {
-        // 普通水平下半台阶上方挂着下移火把/灯笼：去掉舒适框，只保留下半台阶的碰撞。
+        // 普通水平下半台阶上方挂着下移方块（火把/灯笼/栅栏/墙）：去掉舒适框，只保留下半台阶的碰撞。
         if (state.getBlock() instanceof SlabBlock
                 && state.hasProperty(ModBlockStateProperties.MODE)
                 && state.getValue(ModBlockStateProperties.MODE) == VerticalSlabMode.SLAB
                 && state.getValue(SlabBlock.TYPE) == SlabType.BOTTOM
-                && SlabSupport.isLoweredTorchOrLanternAbove(level, pos)) {
+                && SlabSupport.isLoweredOnSlabAbove(level, pos)) {
             cir.setReturnValue(SHAPE_LOWER_HALF);
             return;
         }
 
-        // 下移（ON_SLAB=true）或上移（UNDER_TOP_SLAB=true）的火把/灯笼：
-        // 只保留交互判定（getShape），不参与碰撞。
-        // 栅栏/墙虽然也用 ON_SLAB 下移，但它们是需要阻挡的屏障，仍保留物理碰撞。
-        boolean isSlabLight = state.is(ModTags.ON_SLAB_TORCH) || state.is(ModTags.ON_SLAB_LANTERN);
+        // 下移（ON_SLAB=true）或上移（UNDER_TOP_SLAB=true）的火把类：
+        // 只保留交互判定（getShape），不参与碰撞。灯笼/栅栏/墙保留物理碰撞。
+        boolean isTorchLike = state.is(ModTags.ON_SLAB_TORCH);
         boolean loweredOrRaised = (state.hasProperty(ModBlockStateProperties.ON_SLAB)
                 && state.getValue(ModBlockStateProperties.ON_SLAB))
                 || (state.hasProperty(ModBlockStateProperties.UNDER_TOP_SLAB)
                 && state.getValue(ModBlockStateProperties.UNDER_TOP_SLAB));
-        if (isSlabLight && loweredOrRaised) {
+        if (isTorchLike && loweredOrRaised) {
             cir.setReturnValue(Shapes.empty());
         }
     }

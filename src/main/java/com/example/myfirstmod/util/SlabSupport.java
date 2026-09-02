@@ -73,14 +73,11 @@ public final class SlabSupport {
     }
 
     /**
-     * @return pos 上方的方块是否为“下移（ON_SLAB=true）的普通火把/灵魂火把/灯笼/灵魂灯笼”
+     * @return pos 上方的方块是否为“下移（ON_SLAB=true）的方块”（火把/灯笼/栅栏/墙等）。
      */
-    public static boolean isLoweredTorchOrLanternAbove(BlockGetter level, BlockPos pos) {
+    public static boolean isLoweredOnSlabAbove(BlockGetter level, BlockPos pos) {
         BlockState above = level.getBlockState(pos.above());
-        boolean isTorch = above.is(ModTags.ON_SLAB_TORCH);
-        boolean isLantern = above.is(ModTags.ON_SLAB_LANTERN);
-        return (isTorch || isLantern)
-                && above.hasProperty(ModBlockStateProperties.ON_SLAB)
+        return above.hasProperty(ModBlockStateProperties.ON_SLAB)
                 && above.getValue(ModBlockStateProperties.ON_SLAB);
     }
 
