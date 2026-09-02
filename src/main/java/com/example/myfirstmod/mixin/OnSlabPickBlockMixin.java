@@ -86,6 +86,8 @@ public abstract class OnSlabPickBlockMixin {
         if (hitPos.equals(pos.above())) {
             return true;
         }
-        return hitPos.equals(pos) && hit.getLocation().y - pos.getY() >= 0.5;
+        // 半砖自身的碰撞箱为下半格 [0, 0.5]；只有其上方的“舒适框”（y>0.5）才属于火把/灯笼。
+        // 用严格 >0.5，避免把半砖顶面（y=0.5）也误判为火把。
+        return hitPos.equals(pos) && hit.getLocation().y - pos.getY() > 0.5;
     }
 }
