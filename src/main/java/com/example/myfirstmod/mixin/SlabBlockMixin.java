@@ -68,10 +68,12 @@ public abstract class SlabBlockMixin {
 
     /**
      * 栅栏/墙舒适框：上方是下移栅栏/墙时使用。栅栏立柱 X/Z 6~10（与火把立柱同宽），
-     * 墙柱虽更宽，但中心立柱也可用此框命中。Y 8~18（台阶格上半格 + 略上）。
+     * 墙柱虽更宽，但中心立柱也可用此框命中。
+     * Y 8~24（完整 16 像素 = 一个方块高）：从下台阶上表面（0.5）一直铺到上方方块下移后
+     * 的顶端（1.5），保证上台阶下方的栅栏/墙整段都能被点击/拾取。
      */
     @Unique
-    private static final VoxelShape COMFORT_FENCE = Block.box(6.0, 8.0, 6.0, 10.0, 18.0, 10.0);
+    private static final VoxelShape COMFORT_FENCE = Block.box(6.0, 8.0, 6.0, 10.0, 24.0, 10.0);
 
     // ===== 1. 注册属性 =====
     @Inject(method = "createBlockStateDefinition", at = @At("RETURN"), remap = false)

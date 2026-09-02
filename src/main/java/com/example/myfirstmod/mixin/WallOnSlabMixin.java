@@ -31,9 +31,9 @@ import java.util.Map;
 public abstract class WallOnSlabMixin {
 
     // WallBlock 用“完整 BlockState → 形状”的预计算 ImmutableMap。该 map 在构造时用
-    // defaultBlockState() 构建，而 ON_SLAB 的 any() 默认值是 true（BooleanProperty 首值），
-    // 所以 map 键只含 ON_SLAB=true。为让 ON_SLAB=false 的普通墙也能命中，查询前统一
-    // 把 ON_SLAB 归一化到 true 再查，命中后再按实际 isOnSlab 决定是否位移。
+    // defaultBlockState() 构建，而 ON_SLAB 默认 false，所以 map 键只含 ON_SLAB=false。
+    // 为让 ON_SLAB=true（上台阶）的墙也能命中，查询前统一把 ON_SLAB 归一化到 false 再查，
+    // 命中后再按实际 isOnSlab 决定是否位移。
     @Shadow
     private Map<BlockState, VoxelShape> shapeByIndex;
 
