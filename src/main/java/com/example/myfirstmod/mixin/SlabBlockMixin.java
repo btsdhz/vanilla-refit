@@ -14,6 +14,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.WallBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -74,6 +75,13 @@ public abstract class SlabBlockMixin {
      */
     @Unique
     private static final VoxelShape COMFORT_FENCE = Block.box(6.0, 8.0, 6.0, 10.0, 24.0, 10.0);
+
+    /**
+     * 墙舒适框：上方是下移墙时使用。墙柱碰撞箱直径 8 像素（X/Z 4~12，比栅栏柱更宽），
+     * Y 8~24（16 像素高，一个完整方块），从下台阶上表面铺到墙下移后的顶端。
+     */
+    @Unique
+    private static final VoxelShape COMFORT_WALL = Block.box(4.0, 8.0, 4.0, 12.0, 24.0, 12.0);
 
     // ===== 1. 注册属性 =====
     @Inject(method = "createBlockStateDefinition", at = @At("RETURN"), remap = false)
@@ -201,6 +209,8 @@ public abstract class SlabBlockMixin {
                         comfort = COMFORT_LANTERN;
                     } else if (above.is(ModTags.ON_SLAB_TORCH)) {
                         comfort = COMFORT_TORCH;
+                    } else if (above.getBlock() instanceof WallBlock) {
+                        comfort = COMFORT_WALL;
                     } else {
                         comfort = COMFORT_FENCE;
                     }
