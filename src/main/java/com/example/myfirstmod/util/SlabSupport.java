@@ -7,6 +7,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.SlabType;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
  * 判断方块是否为“普通水平下半台阶”的工具。
@@ -55,6 +56,20 @@ public final class SlabSupport {
                 && state.getValue(ModBlockStateProperties.MODE) == VerticalSlabMode.SLAB
                 && state.hasProperty(SlabBlock.TYPE)
                 && state.getValue(SlabBlock.TYPE) == SlabType.TOP;
+    }
+
+    /**
+     * @return 该方块状态是否为“下移（ON_SLAB=true）的方块”（火把/灯笼/栅栏/墙）。
+     */
+    public static boolean isOnSlab(BlockState state) {
+        return state.hasProperty(ModBlockStateProperties.ON_SLAB) && state.getValue(ModBlockStateProperties.ON_SLAB);
+    }
+
+    /**
+     * 把方块形状整体下移半格（8/16 单位），用于“放在下台阶上并贴齐”的方块。
+     */
+    public static VoxelShape shiftDownHalf(VoxelShape shape) {
+        return shape.move(0.0, -0.5, 0.0);
     }
 
     /**

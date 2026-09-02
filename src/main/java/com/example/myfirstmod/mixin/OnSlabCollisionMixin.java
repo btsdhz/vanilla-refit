@@ -1,6 +1,7 @@
 package com.example.myfirstmod.mixin;
 
 import com.example.myfirstmod.util.ModBlockStateProperties;
+import com.example.myfirstmod.util.ModTags;
 import com.example.myfirstmod.util.SlabSupport;
 import com.example.myfirstmod.util.VerticalSlabMode;
 import net.minecraft.core.BlockPos;
@@ -51,12 +52,15 @@ public abstract class OnSlabCollisionMixin {
             return;
         }
 
-        // 下移（ON_SLAB=true）或上移（UNDER_TOP_SLAB=true）的光源：
+        // 下移（ON_SLAB=true）或上移（UNDER_TOP_SLAB=true）的火把/灯笼：
         // 只保留交互判定（getShape），不参与碰撞。
-        if ((state.hasProperty(ModBlockStateProperties.ON_SLAB)
+        // 栅栏/墙虽然也用 ON_SLAB 下移，但它们是需要阻挡的屏障，仍保留物理碰撞。
+        boolean isSlabLight = state.is(ModTags.ON_SLAB_TORCH) || state.is(ModTags.ON_SLAB_LANTERN);
+        boolean loweredOrRaised = (state.hasProperty(ModBlockStateProperties.ON_SLAB)
                 && state.getValue(ModBlockStateProperties.ON_SLAB))
                 || (state.hasProperty(ModBlockStateProperties.UNDER_TOP_SLAB)
-                && state.getValue(ModBlockStateProperties.UNDER_TOP_SLAB))) {
+                && state.getValue(ModBlockStateProperties.UNDER_TOP_SLAB));
+        if (isSlabLight && loweredOrRaised) {
             cir.setReturnValue(Shapes.empty());
         }
     }
