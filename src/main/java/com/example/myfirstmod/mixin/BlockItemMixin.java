@@ -3,6 +3,7 @@ package com.example.myfirstmod.mixin;
 import com.example.myfirstmod.util.FluidType;
 import com.example.myfirstmod.util.MixedSlabPlacement;
 import com.example.myfirstmod.util.ModBlockStateProperties;
+import com.example.myfirstmod.util.SlabSupport;
 import com.example.myfirstmod.util.VerticalSlabMode;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -37,6 +38,10 @@ public abstract class BlockItemMixin {
         }
         Block block = ((BlockItem) stack.getItem()).getBlock();
         if (!(block instanceof SlabBlock)) {
+            return;
+        }
+        // 其它模组的台阶不应用本模组的堆叠/混合/竖放逻辑，保持原版放置
+        if (!SlabSupport.isSupportedSlab(block)) {
             return;
         }
 
