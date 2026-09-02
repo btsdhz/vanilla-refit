@@ -66,6 +66,7 @@ public class ModBlockStateProvider extends BlockStateProvider {
         // 台阶（剔除手工建模的多纹理材质）
         BuiltInRegistries.BLOCK.stream()
                 .filter(block -> block instanceof SlabBlock)
+                .filter(this::isSupportedNamespace)
                 .filter(slab -> !isHandAuthSlab(slab))
                 .forEach(slab -> {
                     String name = BuiltInRegistries.BLOCK.getKey(slab).getPath();
@@ -75,11 +76,22 @@ public class ModBlockStateProvider extends BlockStateProvider {
         // 楼梯（剔除手工建模的多纹理材质）
         BuiltInRegistries.BLOCK.stream()
                 .filter(block -> block instanceof StairBlock)
+                .filter(this::isSupportedNamespace)
                 .filter(stair -> !isHandAuthStair(stair))
                 .forEach(stair -> {
                     String name = BuiltInRegistries.BLOCK.getKey(stair).getPath();
                     generateStairBlockStates(stair, name);
                 });
+    }
+
+    /**
+     * 只为本模组与原版命名空间的方块生成 blockstate/模型。
+     * 否则当数据生成环境里加载了其它模组时，会尝试为它们的台阶/楼梯生成，
+     * 而这些方块并不存在于本模组的数据上下文里（缺少贴图/模型），导致 runData 失败。
+     */
+    private boolean isSupportedNamespace(Block block) {
+        String namespace = BuiltInRegistries.BLOCK.getKey(block).getNamespace();
+        return namespace.equals("minecraft") || namespace.equals("btsdhz_original");
     }
 
     private void generateMixedSlabBlockStates() {
