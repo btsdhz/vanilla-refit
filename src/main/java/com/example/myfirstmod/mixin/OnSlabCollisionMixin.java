@@ -51,9 +51,12 @@ public abstract class OnSlabCollisionMixin {
             return;
         }
 
-        // 下移（ON_SLAB=true）的光源：只保留交互判定（getShape），不参与碰撞。
-        if (state.hasProperty(ModBlockStateProperties.ON_SLAB)
-                && state.getValue(ModBlockStateProperties.ON_SLAB)) {
+        // 下移（ON_SLAB=true）或上移（UNDER_TOP_SLAB=true）的光源：
+        // 只保留交互判定（getShape），不参与碰撞。
+        if ((state.hasProperty(ModBlockStateProperties.ON_SLAB)
+                && state.getValue(ModBlockStateProperties.ON_SLAB))
+                || (state.hasProperty(ModBlockStateProperties.UNDER_TOP_SLAB)
+                && state.getValue(ModBlockStateProperties.UNDER_TOP_SLAB))) {
             cir.setReturnValue(Shapes.empty());
         }
     }

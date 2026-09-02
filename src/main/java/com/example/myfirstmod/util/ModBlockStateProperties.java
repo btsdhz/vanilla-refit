@@ -22,4 +22,9 @@ public class ModBlockStateProperties {
     // true 时模型与碰撞箱整体下移半格，与下台阶的上表面贴合。
     public static final BooleanProperty ON_SLAB =
             BooleanProperty.create("btsdhz_on_slab");
+
+    // 灯笼/灵魂灯笼是否放在“上台阶”（上半台阶）下方。
+    // true 时模型与碰撞箱整体上移半格，悬挂贴合上台阶的底面。
+    public static final BooleanProperty UNDER_TOP_SLAB =
+            BooleanProperty.create("btsdhz_under_top_slab");
 }

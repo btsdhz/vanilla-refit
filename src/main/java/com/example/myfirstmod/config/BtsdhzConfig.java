@@ -25,5 +25,19 @@ public class BtsdhzConfig {
                     .comment("false：恢复原版行为，火把/灯笼悬空在台阶上方半格。")
                     .define("allowTorchLanternOnSlab", true);
 
+    /**
+     * 开关：灯笼悬挂“上台阶”下功能。
+     *
+     * 开启时，普通灯笼、灵魂灯笼（悬挂形态）放置于“上台阶”（上半台阶）下方时，
+     * 其模型与碰撞箱会整体上移半格，灯笼悬挂贴合上台阶的底面，不再与上台阶之间
+     * 留下半格空隙。关闭时则按原版行为处理（原版无法在上台阶下悬挂灯笼）。
+     */
+    public static final ModConfigSpec.BooleanValue LANTERN_UNDER_TOP_SLAB =
+            BUILDER
+                    .comment("是否允许灯笼、灵魂灯笼在“上台阶”（上半台阶）下方悬挂并贴合底面。")
+                    .comment("true（默认）：灯笼模型与碰撞箱整体上移半格，悬挂贴合上台阶底面。")
+                    .comment("false：恢复原版行为，无法在上台阶下悬挂灯笼。")
+                    .define("allowLanternUnderTopSlab", true);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 }

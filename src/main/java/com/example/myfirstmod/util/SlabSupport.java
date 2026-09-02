@@ -32,6 +32,18 @@ public final class SlabSupport {
     }
 
     /**
+     * @return pos 处是否为普通水平上半台阶
+     */
+    public static boolean isTopSlab(BlockGetter level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+        return state.getBlock() instanceof SlabBlock
+                && state.hasProperty(ModBlockStateProperties.MODE)
+                && state.getValue(ModBlockStateProperties.MODE) == VerticalSlabMode.SLAB
+                && state.hasProperty(SlabBlock.TYPE)
+                && state.getValue(SlabBlock.TYPE) == SlabType.TOP;
+    }
+
+    /**
      * @return pos 上方的方块是否为“下移（ON_SLAB=true）的普通火把/灵魂火把/灯笼/灵魂灯笼”
      */
     public static boolean isLoweredTorchOrLanternAbove(BlockGetter level, BlockPos pos) {
