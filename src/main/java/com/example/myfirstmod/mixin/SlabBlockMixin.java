@@ -76,13 +76,6 @@ public abstract class SlabBlockMixin {
     @Unique
     private static final VoxelShape COMFORT_FENCE = Block.box(6.0, 8.0, 6.0, 10.0, 24.0, 10.0);
 
-    /**
-     * 墙舒适框：上方是下移墙时使用。墙柱碰撞箱直径 8 像素（X/Z 4~12，比栅栏柱更宽），
-     * Y 8~24（16 像素高，一个完整方块），从下台阶上表面铺到墙下移后的顶端。
-     */
-    @Unique
-    private static final VoxelShape COMFORT_WALL = Block.box(4.0, 8.0, 4.0, 12.0, 24.0, 12.0);
-
     // ===== 1. 注册属性 =====
     @Inject(method = "createBlockStateDefinition", at = @At("RETURN"), remap = false)
     private void btsdhz_original$createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder, CallbackInfo ci) {
@@ -210,7 +203,10 @@ public abstract class SlabBlockMixin {
                     } else if (above.is(ModTags.ON_SLAB_TORCH)) {
                         comfort = COMFORT_TORCH;
                     } else if (above.getBlock() instanceof WallBlock) {
-                        comfort = COMFORT_WALL;
+                        // 墙的立柱会随连接状态消失（四面相连时只剩“光滑”的墙段），固定框会对不上，
+                        // 因此直接取墙自身当前的形状（WallOnSlabMixin 已把它下移半格），再从“上方格
+                        // 坐标系”换算到“台阶格坐标系”（整体上移一格），保证台阶上显示的轮廓与墙一致。
+                        comfort = above.getShape(level, pos.above(), context).move(0.0, 1.0, 0.0);
                     } else {
                         comfort = COMFORT_FENCE;
                     }
