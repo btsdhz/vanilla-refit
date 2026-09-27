@@ -7,8 +7,11 @@ import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -16,9 +19,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /**
  * 客户端“拆方块”预测也做与半砖舒适框一致的改判。
  *
- * 服务端已把“点到带下移火把/灯笼的半砖”改判为“拆上方火把/灯笼”；但客户端在创造模式
- * 会立即在本地预测“拆半砖”，与服务端动作不一致，导致半砖闪回。这里让客户端在预测
- * 拆半砖时也把目标改到上方火把/灯笼，使两边一致，消除闪回。
+ * 服务端已把“点到半砖上半格（舒适框）”改判为“拆上方火把/灯笼/栅栏/墙”；但客户端在创造
+ * 模式会立即在本地预测“拆半砖”，与服务端动作不一致，导致半砖闪回。这里让客户端在预测
+ * 拆半砖时也做同样的命中高度判断并改判到上方方块，使两边一致，消除闪回。
  */
 @Mixin(MultiPlayerGameMode.class)
 public abstract class MultiPlayerGameModeMixin {
@@ -47,10 +50,24 @@ public abstract class MultiPlayerGameModeMixin {
             return;
         }
         if (SlabSupport.isBottomSlab(this.minecraft.level, pos)
-                && SlabSupport.isLoweredOnSlabAbove(this.minecraft.level, pos)) {
-            // 改拆上方的火把/灯笼，客户端预测与服务端一致
+                && SlabSupport.isLoweredOnSlabAbove(this.minecraft.level, pos)
+                && btsdhz_original$aimsAboveSlabTop(pos)) {
+            // 改拆上方的火把/灯笼/栅栏/墙，客户端预测与服务端一致
             cir.setReturnValue(this.destroyBlock(pos.above()));
             cir.cancel();
         }
+    }
+
+    /**
+     * 当前瞄的是不是半砖格上半格（舒适框区域）。
+     * 下半格属于半砖本体，保持原版“拆半砖”。
+     */
+    @Unique
+    private boolean btsdhz_original$aimsAboveSlabTop(BlockPos pos) {
+        HitResult hit = this.minecraft.hitResult;
+        if (!(hit instanceof BlockHitResult blockHit) || !blockHit.getBlockPos().equals(pos)) {
+            return false;
+        }
+        return blockHit.getLocation().y - pos.getY() > 0.5;
     }
 }

@@ -2,8 +2,10 @@ package com.example.myfirstmod.event;
 
 import com.example.myfirstmod.util.SlabSupport;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
@@ -16,8 +18,8 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
  * 会并入一个对应宽度/柱宽的舒适框（见 SlabBlockMixin），从而让“瞄准方块底座”也能命中半砖。
  * 这里再把这次拆半砖的操作改判到上方的方块——避免误拆半砖。
  *
- * <p>规则：半砖上方有下移方块时，左键点半砖的任意区域都会先拆掉上方的方块
- * （先清掉上面的东西才能拆半砖），这符合直觉，也无需细分命中位置。
+ * <p>规则：按命中高度区分——点在“舒适框”（半砖格上半格，y&gt;0.5）才改判拆上方方块；
+ * 点在半砖本体（下半格）保持原版，拆的就是半砖自己。
  */
 @EventBusSubscriber(modid = "btsdhz_original")
 public class TorchComfortEvents {
@@ -36,9 +38,20 @@ public class TorchComfortEvents {
             return;
         }
 
+        // 只有点到半砖上半格（舒适框区域）才算“瞄准上方方块”；
+        // 点到半砖本体（下半格，含顶面 y=0.5）保持原版，拆半砖本身。
+        // NeoForge 的 LeftClickBlock 事件不带命中点，这里用玩家视线自己做一次方块拾取。
+        Player player = event.getEntity();
+        HitResult pick = player.pick(player.blockInteractionRange(), 0.0F, false);
+        if (!(pick instanceof BlockHitResult blockHit)
+                || !blockHit.getBlockPos().equals(pos)
+                || blockHit.getLocation().y - pos.getY() <= 0.5) {
+            return;
+        }
+
         // 取消拆半砖，改为拆上方方块（会掉落对应物品）
         event.setCanceled(true);
-        boolean creative = event.getEntity() instanceof Player p && p.getAbilities().instabuild;
+        boolean creative = player.getAbilities().instabuild;
         event.getLevel().destroyBlock(pos.above(), !creative);
     }
 }
