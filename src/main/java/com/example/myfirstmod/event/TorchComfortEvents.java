@@ -2,6 +2,7 @@ package com.example.myfirstmod.event;
 
 import com.example.myfirstmod.util.SlabSupport;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -49,9 +50,13 @@ public class TorchComfortEvents {
             return;
         }
 
-        // 取消拆半砖，改为拆上方方块（会掉落对应物品）
+        // 取消拆半砖，改为拆上方方块。
+        // 这里必须走 ServerPlayerGameMode#destroyBlock（原版玩家破坏路径）：它不会广播 2001 事件，
+        // 所以破坏音效/粒子只由客户端预测生成一次；同时保留工具耐久、掉落物、统计等原版行为。
+        // 早前用的 Level#destroyBlock 是非玩家破坏路径，会额外广播一次 2001，导致音效和粒子各播两遍。
         event.setCanceled(true);
-        boolean creative = player.getAbilities().instabuild;
-        event.getLevel().destroyBlock(pos.above(), !creative);
+        if (player instanceof ServerPlayer serverPlayer) {
+            serverPlayer.gameMode.destroyBlock(pos.above());
+        }
     }
 }
