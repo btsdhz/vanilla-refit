@@ -75,12 +75,15 @@ public class MixedSlabBlock extends Block implements EntityBlock {
 
     @Override
     public float getDestroyProgress(BlockState state, Player player, BlockGetter level, BlockPos pos) {
-        // 取两块半砖中较慢的挖掘进度，避免破坏速度失真
+        // 两块半砖的材质可能对应不同工具（木头用斧、石头用镐）。如果取两者的较慢值，
+        // 由于不存在同时对两种材质都有效的工具，任何工具都提不了速，等于工具适配完全失效。
+        // 这里改成按准星实际命中的那一半的材质来算，与“潜行只拆一半”的判定保持一致。
         BlockEntity be = level.getBlockEntity(pos);
         if (be instanceof MixedSlabBlockEntity mixed) {
-            float a = mixed.getFirstSlab().defaultBlockState().getDestroyProgress(player, level, pos);
-            float b = mixed.getSecondSlab().defaultBlockState().getDestroyProgress(player, level, pos);
-            return Math.min(a, b);
+            Block target = isHitFirstHalf(level, pos, state, player)
+                    ? mixed.getFirstSlab()
+                    : mixed.getSecondSlab();
+            return target.defaultBlockState().getDestroyProgress(player, level, pos);
         }
         return super.getDestroyProgress(state, player, level, pos);
     }
@@ -121,7 +124,7 @@ public class MixedSlabBlock extends Block implements EntityBlock {
         return super.getCloneItemStack(level, pos, state);
     }
 
-    private static boolean isHitFirstHalf(LevelReader level, BlockPos pos, BlockState state, Player player) {
+    private static boolean isHitFirstHalf(BlockGetter level, BlockPos pos, BlockState state, Player player) {
         if (level instanceof Level l) {
             Vec3 eye = player.getEyePosition();
             Vec3 look = player.getViewVector(1.0F);
