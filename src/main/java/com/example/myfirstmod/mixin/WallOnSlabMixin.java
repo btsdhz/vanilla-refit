@@ -2,10 +2,12 @@ package com.example.myfirstmod.mixin;
 
 import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.SlabSupport;
+import com.example.myfirstmod.util.WallSlabConnection;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.WallBlock;
@@ -25,7 +27,8 @@ import java.util.Map;
  * 墙放在“下台阶”（下半台阶）上时，新增 btsdhz_on_slab 属性并让模型与碰撞箱下移半格，
  * 使墙贴齐下台阶的上表面，不再悬空。
  *
- * 只做“墙是否在下台阶上”的判定与位移；墙与墙/栅栏之间的连接关系不受影响。
+ * 除了位移，还负责“跨下台阶”的墙连接：下移墙与脚下台阶格四周的墙互相连接，
+ * 具体判定见 {@link WallSlabConnection}。
  */
 @Mixin(WallBlock.class)
 public abstract class WallOnSlabMixin {
@@ -53,8 +56,11 @@ public abstract class WallOnSlabMixin {
         if (state == null) {
             return;
         }
-        boolean onSlab = SlabSupport.isBottomSlab(context.getLevel(), context.getClickedPos().below());
-        cir.setReturnValue(state.setValue(ModBlockStateProperties.ON_SLAB, onSlab));
+        Level level = context.getLevel();
+        BlockPos pos = context.getClickedPos();
+        boolean onSlab = SlabSupport.isBottomSlab(level, pos.below());
+        BlockState withSlab = state.setValue(ModBlockStateProperties.ON_SLAB, onSlab);
+        cir.setReturnValue(WallSlabConnection.withSlabConnections(withSlab, level, pos));
     }
 
     // 邻居更新时（含下方放台阶/拆台阶）重新同步 ON_SLAB，保证反向场景（先放墙后放台阶）也生效
@@ -62,10 +68,13 @@ public abstract class WallOnSlabMixin {
     private void btsdhz_original$updateShape(BlockState state, Direction facing, BlockState facingState,
                                              LevelAccessor level, BlockPos currentPos, BlockPos facingPos,
                                              CallbackInfoReturnable<BlockState> cir) {
-        if (state.hasProperty(ModBlockStateProperties.ON_SLAB)) {
-            boolean onSlab = SlabSupport.isBottomSlab(level, currentPos.below());
-            cir.setReturnValue(cir.getReturnValue().setValue(ModBlockStateProperties.ON_SLAB, onSlab));
+        BlockState result = cir.getReturnValue();
+        if (result == null || !result.hasProperty(ModBlockStateProperties.ON_SLAB)) {
+            return;
         }
+        boolean onSlab = SlabSupport.isBottomSlab(level, currentPos.below());
+        BlockState withSlab = result.setValue(ModBlockStateProperties.ON_SLAB, onSlab);
+        cir.setReturnValue(WallSlabConnection.withSlabConnections(withSlab, level, currentPos));
     }
 
     /**

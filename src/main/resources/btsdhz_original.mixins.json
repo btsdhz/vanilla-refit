@@ -15,6 +15,7 @@
     "FenceOnSlabMixin",
     "CrossCollisionOnSlabMixin",
     "WallOnSlabMixin",
+    "BlockBehaviourSlabWallMixin",
     "RedstoneTorchOnSlabMixin",
     "ServerPlayerGameModeMixin",
     "LeadItemMixin",
