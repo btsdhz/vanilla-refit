@@ -73,8 +73,13 @@ public final class MixedSlabBreakHandler {
         // 先读回材质再移除方块（方块实体随之被清理），保证掉落物正确
         level.removeBlock(pos, false);
         if (!player.getAbilities().instabuild) {
-            Block.popResource(level, pos, new ItemStack(a));
-            Block.popResource(level, pos, new ItemStack(b));
+            // 每一半按自己的材质判定工具适配（与原版一致：用错工具能挖掉但不掉落）
+            if (canHarvest(player, a)) {
+                Block.popResource(level, pos, new ItemStack(a));
+            }
+            if (canHarvest(player, b)) {
+                Block.popResource(level, pos, new ItemStack(b));
+            }
         }
         level.playSound(null, pos, state.getSoundType().getBreakSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
         return true;
@@ -115,10 +120,20 @@ public final class MixedSlabBreakHandler {
         level.playSound(null, pos, hitBlock.defaultBlockState().getSoundType().getBreakSound(),
                 SoundSource.BLOCKS, 1.0F, 1.0F);
         // 只掉落被拆的那一块
-        if (!player.getAbilities().instabuild) {
+        if (!player.getAbilities().instabuild && canHarvest(player, hitBlock)) {
             Block.popResource(level, pos, new ItemStack(hitBlock));
         }
         return true;
+    }
+
+    /**
+     * 该半砖材质在当前工具下是否会掉落（原版语义：需要正确工具才能收获）。
+     *
+     * 例如石头半砖必须用镐，木半砖徒手也掉；用错工具时方块照样能挖掉，只是不产掉落物。
+     */
+    private static boolean canHarvest(Player player, Block slabBlock) {
+        BlockState state = slabBlock.defaultBlockState();
+        return !state.requiresCorrectToolForDrops() || player.hasCorrectToolForDrops(state);
     }
 
     /** 根据玩家视线命中位置判断是“第一半（0/北/西 半）”还是“第二半”。 */

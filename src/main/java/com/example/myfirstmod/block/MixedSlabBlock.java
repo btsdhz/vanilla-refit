@@ -154,10 +154,23 @@ public class MixedSlabBlock extends Block implements EntityBlock {
         // 释放两块半砖的物品
         if (blockEntity instanceof MixedSlabBlockEntity mixed) {
             if (!player.getAbilities().instabuild) {
-                popResource(level, pos, new ItemStack(mixed.getFirstSlab()));
-                popResource(level, pos, new ItemStack(mixed.getSecondSlab()));
+                // 每一半按自己的材质判定工具适配（用错工具能挖掉但不掉落）
+                Block first = mixed.getFirstSlab();
+                Block second = mixed.getSecondSlab();
+                if (canHarvest(player, first)) {
+                    popResource(level, pos, new ItemStack(first));
+                }
+                if (canHarvest(player, second)) {
+                    popResource(level, pos, new ItemStack(second));
+                }
             }
         }
         super.playerDestroy(level, player, pos, state, blockEntity, tool);
+    }
+
+    /** 该半砖材质在当前工具下是否会掉落（原版语义：需要正确工具才能收获）。 */
+    private static boolean canHarvest(Player player, Block slabBlock) {
+        BlockState state = slabBlock.defaultBlockState();
+        return !state.requiresCorrectToolForDrops() || player.hasCorrectToolForDrops(state);
     }
 }
