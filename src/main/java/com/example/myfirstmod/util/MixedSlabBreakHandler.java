@@ -73,11 +73,11 @@ public final class MixedSlabBreakHandler {
         // 先读回材质再移除方块（方块实体随之被清理），保证掉落物正确
         level.removeBlock(pos, false);
         if (!player.getAbilities().instabuild) {
-            // 每一半按自己的材质判定工具适配（与原版一致：用错工具能挖掉但不掉落）
-            if (canHarvest(player, a)) {
+            // 非潜行的整块拆除：不做完整工具适配，但徒手挖“需要工具”的半砖仍然不给掉落
+            if (canHarvestLoose(player, a)) {
                 Block.popResource(level, pos, new ItemStack(a));
             }
-            if (canHarvest(player, b)) {
+            if (canHarvestLoose(player, b)) {
                 Block.popResource(level, pos, new ItemStack(b));
             }
         }
@@ -119,7 +119,7 @@ public final class MixedSlabBreakHandler {
         // 播放被拆那块半砖的破坏音效（mixin 完全接管了原版流程，音效需手动补回）
         level.playSound(null, pos, hitBlock.defaultBlockState().getSoundType().getBreakSound(),
                 SoundSource.BLOCKS, 1.0F, 1.0F);
-        // 只掉落被拆的那一块
+        // 潜行“精准拆除”才做工具适配：用错工具照样能挖掉，但不产掉落物
         if (!player.getAbilities().instabuild && canHarvest(player, hitBlock)) {
             Block.popResource(level, pos, new ItemStack(hitBlock));
         }
@@ -130,10 +130,25 @@ public final class MixedSlabBreakHandler {
      * 该半砖材质在当前工具下是否会掉落（原版语义：需要正确工具才能收获）。
      *
      * 例如石头半砖必须用镐，木半砖徒手也掉；用错工具时方块照样能挖掉，只是不产掉落物。
+     * 只在潜行的“精准拆除”里生效，非潜行的整块拆除不做工具限制。
      */
     private static boolean canHarvest(Player player, Block slabBlock) {
         BlockState state = slabBlock.defaultBlockState();
         return !state.requiresCorrectToolForDrops() || player.hasCorrectToolForDrops(state);
+    }
+
+    /**
+     * 整块拆除（非潜行）使用的宽松判定：不要求工具完全匹配，
+     * 但徒手挖“需要正确工具”的半砖（例如空手挖石头半砖）仍然不给掉落。
+     *
+     * 潜行的“精准拆除”用的是严格判定 {@link #canHarvest(Player, Block)}。
+     */
+    public static boolean canHarvestLoose(Player player, Block slabBlock) {
+        BlockState state = slabBlock.defaultBlockState();
+        if (!state.requiresCorrectToolForDrops()) {
+            return true;
+        }
+        return !player.getMainHandItem().isEmpty();
     }
 
     /** 根据玩家视线命中位置判断是“第一半（0/北/西 半）”还是“第二半”。 */

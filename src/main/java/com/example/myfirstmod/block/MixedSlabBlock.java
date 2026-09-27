@@ -3,6 +3,7 @@ package com.example.myfirstmod.block;
 import com.example.myfirstmod.ModBlockEntities;
 import com.example.myfirstmod.block.entity.MixedSlabBlockEntity;
 import com.example.myfirstmod.util.FluidType;
+import com.example.myfirstmod.util.MixedSlabBreakHandler;
 import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.VerticalSlabMode;
 import com.mojang.serialization.MapCodec;
@@ -154,23 +155,17 @@ public class MixedSlabBlock extends Block implements EntityBlock {
         // 释放两块半砖的物品
         if (blockEntity instanceof MixedSlabBlockEntity mixed) {
             if (!player.getAbilities().instabuild) {
-                // 每一半按自己的材质判定工具适配（用错工具能挖掉但不掉落）
+                // 整块拆除用宽松判定：不要求工具完全匹配，但徒手挖需要工具的半砖仍不给掉落
                 Block first = mixed.getFirstSlab();
                 Block second = mixed.getSecondSlab();
-                if (canHarvest(player, first)) {
+                if (MixedSlabBreakHandler.canHarvestLoose(player, first)) {
                     popResource(level, pos, new ItemStack(first));
                 }
-                if (canHarvest(player, second)) {
+                if (MixedSlabBreakHandler.canHarvestLoose(player, second)) {
                     popResource(level, pos, new ItemStack(second));
                 }
             }
         }
         super.playerDestroy(level, player, pos, state, blockEntity, tool);
-    }
-
-    /** 该半砖材质在当前工具下是否会掉落（原版语义：需要正确工具才能收获）。 */
-    private static boolean canHarvest(Player player, Block slabBlock) {
-        BlockState state = slabBlock.defaultBlockState();
-        return !state.requiresCorrectToolForDrops() || player.hasCorrectToolForDrops(state);
     }
 }
