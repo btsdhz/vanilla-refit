@@ -4,6 +4,7 @@ import com.example.myfirstmod.block.MixedSlabBlock;
 import com.example.myfirstmod.block.entity.MixedSlabBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -73,7 +74,7 @@ public final class MixedSlabBreakHandler {
         // 先读回材质再移除方块（方块实体随之被清理），保证掉落物正确
         level.removeBlock(pos, false);
         if (!player.getAbilities().instabuild) {
-            // 非潜行的整块拆除：不做完整工具适配，但徒手挖“需要工具”的半砖仍然不给掉落
+            // 非潜行的整块拆除：不做完整工具适配，但手上没拿工具时“需要工具”的半砖不给掉落
             if (canHarvestLoose(player, a)) {
                 Block.popResource(level, pos, new ItemStack(a));
             }
@@ -139,7 +140,8 @@ public final class MixedSlabBreakHandler {
 
     /**
      * 整块拆除（非潜行）使用的宽松判定：不要求工具完全匹配，
-     * 但徒手挖“需要正确工具”的半砖（例如空手挖石头半砖）仍然不给掉落。
+     * 但手上必须拿着工具——徒手、或者只拿着泥土方块之类的非工具物品，
+     * 挖“需要正确工具”的半砖（例如石头半砖）都不给掉落。
      *
      * 潜行的“精准拆除”用的是严格判定 {@link #canHarvest(Player, Block)}。
      */
@@ -148,7 +150,8 @@ public final class MixedSlabBreakHandler {
         if (!state.requiresCorrectToolForDrops()) {
             return true;
         }
-        return !player.getMainHandItem().isEmpty();
+        // 只认带 TOOL 组件的物品（镐/斧/锹/锄/剑等，含模组工具），非工具物品不算
+        return player.getMainHandItem().has(DataComponents.TOOL);
     }
 
     /** 根据玩家视线命中位置判断是“第一半（0/北/西 半）”还是“第二半”。 */

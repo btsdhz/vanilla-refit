@@ -155,7 +155,7 @@ public class MixedSlabBlock extends Block implements EntityBlock {
         // 释放两块半砖的物品
         if (blockEntity instanceof MixedSlabBlockEntity mixed) {
             if (!player.getAbilities().instabuild) {
-                // 整块拆除用宽松判定：不要求工具完全匹配，但徒手挖需要工具的半砖仍不给掉落
+                // 整块拆除用宽松判定：不要求工具完全匹配，但手上没拿工具时不给“需要工具”的半砖掉落
                 Block first = mixed.getFirstSlab();
                 Block second = mixed.getSecondSlab();
                 if (MixedSlabBreakHandler.canHarvestLoose(player, first)) {
