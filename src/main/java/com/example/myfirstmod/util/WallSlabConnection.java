@@ -150,10 +150,36 @@ public final class WallSlabConnection {
                     result = recomputePost(result, level, pos);
                 }
             }
+            if (SlabSupport.isUnderTopSlab(result)) {
+                result = forceFullHeightUnderTopSlab(result);
+            }
             return result;
         } finally {
             RECALCULATING.set(Boolean.FALSE);
         }
+    }
+
+    /**
+     * 上台阶下的墙补成“完整高度”的墙（立柱 + 墙臂都是 16/16 高）。
+     *
+     * <p>原版把墙当成“上方有方块”的条件是：上方方块碰撞形状的 DOWN 面能盖住立柱测试框。
+     * 完整方块的 DOWN 面就是它自身（0~16 全高），所以成立；而上半台阶的下表面只占半格，
+     * {@code getFaceShape(DOWN)} 会被切成 1/16 厚的薄片，盖不住测试框，于是原版判定不成立：
+     * 墙只有 14/16 高的墙臂、也没有立柱。我们虽然把墙整体上移半格让它贴上台阶底面，
+     * 但墙自己的形状仍矮 2/16，看上去就是台阶下面一条缝。
+     *
+     * <p>所以这里对“上移墙”手动按“上方被完整盖住”处理：补上立柱（UP=true），
+     * 并把已有墙臂提升为 TALL，位移半格后正好顶到上台阶底面。
+     */
+    private static BlockState forceFullHeightUnderTopSlab(BlockState state) {
+        BlockState result = state.setValue(WallBlock.UP, true);
+        for (Direction dir : HORIZONTAL) {
+            EnumProperty<WallSide> property = wallProperty(dir);
+            if (result.getValue(property) != WallSide.NONE) {
+                result = result.setValue(property, WallSide.TALL);
+            }
+        }
+        return result;
     }
 
     /** 侧面连接变化后，用原版逻辑重算立柱（UP）。 */
