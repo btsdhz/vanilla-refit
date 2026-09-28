@@ -212,6 +212,17 @@ public abstract class SlabBlockMixin {
                     }
                     cir.setReturnValue(Shapes.or(cir.getReturnValue(), comfort));
                 }
+            } else if (mode == VerticalSlabMode.SLAB
+                    && state.getValue(SlabBlock.TYPE) == SlabType.TOP) {
+                // 镜像：上半台阶下方有“上移（UNDER_TOP_SLAB=true）的方块”（灯笼/墙）时，
+                // 把该方块自身的形状换算到台阶格坐标系（整体下移一格），并入台阶形状。
+                // 这样台阶格下半格（0~0.5，也就是上移方块露出来的那半格）也能被准星命中，
+                // 命中后由挖掘目标改判 / 中键改判交给下方的方块。
+                BlockState below = getRaisedUnderTopSlabBlock(level, pos);
+                if (below != null) {
+                    cir.setReturnValue(Shapes.or(cir.getReturnValue(),
+                            below.getShape(level, pos.below(), context).move(0.0, -1.0, 0.0)));
+                }
             }
         }
     }
@@ -224,6 +235,17 @@ public abstract class SlabBlockMixin {
         if (above.hasProperty(ModBlockStateProperties.ON_SLAB)
                 && above.getValue(ModBlockStateProperties.ON_SLAB)) {
             return above;
+        }
+        return null;
+    }
+
+    // 返回 pos 下方是否为“上移（UNDER_TOP_SLAB=true）的方块”（灯笼/墙）；是则返回该下方方块态，否则 null。
+    @Unique
+    private static BlockState getRaisedUnderTopSlabBlock(BlockGetter level, BlockPos pos) {
+        BlockState below = level.getBlockState(pos.below());
+        if (below.hasProperty(ModBlockStateProperties.UNDER_TOP_SLAB)
+                && below.getValue(ModBlockStateProperties.UNDER_TOP_SLAB)) {
+            return below;
         }
         return null;
     }

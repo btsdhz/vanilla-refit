@@ -97,6 +97,13 @@ public final class SlabSupport {
     }
 
     /**
+     * @return pos 下方的方块是否为“上移（UNDER_TOP_SLAB=true）的方块”（灯笼/墙，贴在上台阶下方）。
+     */
+    public static boolean isRaisedUnderTopSlabBelow(BlockGetter level, BlockPos pos) {
+        return isUnderTopSlab(level.getBlockState(pos.below()));
+    }
+
+    /**
      * @return pos 处的方块是否为含熔岩的台阶（FLUID_TYPE == LAVA）。
      * 含水台阶不算（灯笼防水、火把火焰高于水面，仍可放置）；含熔岩的台阶不允许放置。
      */

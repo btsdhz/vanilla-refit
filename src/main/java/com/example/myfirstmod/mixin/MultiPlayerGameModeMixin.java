@@ -27,6 +27,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *     <li>挖掘进度、裂纹动画、破坏音效都按上方方块正常走，生存模式不会“秒破”；</li>
  *     <li>客户端直接把目标改判成上方方块并发包，服务端无需介入，行为与原版一致。</li>
  * </ul>
+ *
+ * <p>上台阶一侧是镜像：上半台阶下方有上移方块（灯笼/墙）时，台阶格下半格并入了该方块的形状，
+ * 指着这半格时挖掘目标改判成台阶<em>下方</em>的方块。
  */
 @Mixin(MultiPlayerGameMode.class)
 public abstract class MultiPlayerGameModeMixin {
@@ -85,31 +88,41 @@ public abstract class MultiPlayerGameModeMixin {
     }
 
     /**
-     * 指向下台阶“舒适框”时，把挖掘目标换成正上方的下移方块；
-     * 指向半砖本体（下半格）时原样返回，保持原版“挖半砖”。
+     * 指向台阶“舒适框”时，把挖掘目标换成贴在台阶上的那个方块；
+     * 指向台阶本体时原样返回，保持原版“挖台阶”。
      */
     @Unique
     private BlockPos btsdhz_original$redirectTarget(BlockPos pos) {
         if (this.minecraft.level == null || this.minecraft.player == null) {
             return pos;
         }
-        if (!SlabSupport.isBottomSlab(this.minecraft.level, pos)
-                || !SlabSupport.isLoweredOnSlabAbove(this.minecraft.level, pos)
-                || !btsdhz_original$aimsAboveSlabTop(pos)) {
-            return pos;
+        // 下台阶 + 上方下移方块：指向台阶格上半格（舒适框）时改判为上方方块
+        if (SlabSupport.isBottomSlab(this.minecraft.level, pos)
+                && SlabSupport.isLoweredOnSlabAbove(this.minecraft.level, pos)
+                && btsdhz_original$aimsAtSlabHalf(pos, true)) {
+            return pos.above();
         }
-        return pos.above();
+        // 上台阶 + 下方上移方块：指向台阶格下半格（舒适框）时改判为下方方块
+        if (SlabSupport.isTopSlab(this.minecraft.level, pos)
+                && SlabSupport.isRaisedUnderTopSlabBelow(this.minecraft.level, pos)
+                && btsdhz_original$aimsAtSlabHalf(pos, false)) {
+            return pos.below();
+        }
+        return pos;
     }
 
     /**
-     * 当前瞄的是不是半砖格上半格（舒适框区域）。
+     * 当前瞄的是不是台阶格的“舒适框”那一半格。
+     *
+     * @param aboveHalf true=看上半格（下移方块在台阶上方）；false=看下半格（上移方块在台阶下方）
      */
     @Unique
-    private boolean btsdhz_original$aimsAboveSlabTop(BlockPos pos) {
+    private boolean btsdhz_original$aimsAtSlabHalf(BlockPos pos, boolean aboveHalf) {
         HitResult hit = this.minecraft.hitResult;
         if (!(hit instanceof BlockHitResult blockHit) || !blockHit.getBlockPos().equals(pos)) {
             return false;
         }
-        return blockHit.getLocation().y - pos.getY() > 0.5;
+        double half = blockHit.getLocation().y - pos.getY();
+        return aboveHalf ? half > 0.5 : half < 0.5;
     }
 }

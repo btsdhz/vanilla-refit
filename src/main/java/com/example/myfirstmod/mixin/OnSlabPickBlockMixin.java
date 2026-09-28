@@ -20,15 +20,18 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * 修正“下台阶上的下移方块（火把/灵魂火把/红石火把/灯笼/栅栏/墙）”的中键拾取。
+ * 修正“贴台阶的方块”的中键拾取（下台阶上的下移方块、上台阶下的上移方块）。
  *
  * <p>背景：半砖为了能点到上方方块，在 {@code getShape}（OUTLINE）里并入了“舒适框”，
  * 因此准星指向上方方块区域时，拾取射线命中的其实是<b>半砖</b>（而非上方方块），
  * 中键拾取会返回半砖物品。这里在 {@code Block.getCloneItemStack} 里把该情况改判：
  * 瞄准“下移方块”命中半砖时，返还上方的方块物品，而不是半砖。
  *
- * <p>只对“普通水平下半台阶 + 上方下移方块 + 玩家准星落在方块/舒适框区域”生效；
- * 瞄准半砖下半部分仍返回半砖，其余方块保持默认行为。
+ * <p>上台阶一侧是镜像：上半台阶下方有上移方块（灯笼/墙）时，台阶格下半格并入了该方块的形状，
+ * 此时中键返还下方方块，而不是台阶。
+ *
+ * <p>只对“普通水平台阶 + 贴着的位移方块 + 玩家准星落在方块/舒适框区域”生效；
+ * 瞄准台阶本体仍返回台阶，其余方块保持默认行为。
  */
 @Mixin(Block.class)
 public abstract class OnSlabPickBlockMixin {
@@ -41,36 +44,46 @@ public abstract class OnSlabPickBlockMixin {
     )
     private void btsdhz_original$getCloneItemStack(LevelReader level, BlockPos pos, BlockState state,
                                                    CallbackInfoReturnable<ItemStack> cir) {
-        if (!(state.getBlock() instanceof SlabBlock)
-                || !SlabSupport.isBottomSlab(level, pos)
-                || !level.isClientSide()) {
-            return;
-        }
-
-        BlockState above = level.getBlockState(pos.above());
-        if (!isLoweredOnSlabBlock(above)) {
+        if (!(state.getBlock() instanceof SlabBlock) || !level.isClientSide()) {
             return;
         }
 
         Player player = MixedSlabBlock.cachedPlayer;
-        if (player == null || !aimsAtOnSlabBlock(level, pos, player)) {
+        if (player == null) {
             return;
         }
 
-        cir.setReturnValue(new ItemStack(above.getBlock()));
+        BlockState attached;
+        if (SlabSupport.isBottomSlab(level, pos) && isLoweredOnSlabBlock(level.getBlockState(pos.above()))) {
+            attached = level.getBlockState(pos.above());
+            if (!aimsAtAttachedBlock(level, pos, player, pos.above(), true)) {
+                return;
+            }
+        } else if (SlabSupport.isTopSlab(level, pos) && SlabSupport.isRaisedUnderTopSlabBelow(level, pos)) {
+            attached = level.getBlockState(pos.below());
+            if (!aimsAtAttachedBlock(level, pos, player, pos.below(), false)) {
+                return;
+            }
+        } else {
+            return;
+        }
+
+        cir.setReturnValue(new ItemStack(attached.getBlock()));
     }
 
-    /** 上方方块是否为“下移（ON_SLAB=true）的方块”。 */
+    /** 方块是否为“下移（ON_SLAB=true）的方块”。 */
     private static boolean isLoweredOnSlabBlock(BlockState state) {
         return state.hasProperty(ModBlockStateProperties.ON_SLAB)
                 && state.getValue(ModBlockStateProperties.ON_SLAB);
     }
 
     /**
-     * 玩家准星是否落在半砖上方的“方块/舒适框”区域。
-     * 命中上方方块本身，或命中半砖的上半格（舒适框）都算。
+     * 玩家准星是否落在“贴着台阶的那个方块 / 台阶里并入的舒适框”区域。
+     *
+     * @param aboveHalf true=下移方块在台阶上方（看台阶格上半格）；false=上移方块在台阶下方（看台阶格下半格）
      */
-    private static boolean aimsAtOnSlabBlock(LevelReader level, BlockPos pos, Player player) {
+    private static boolean aimsAtAttachedBlock(LevelReader level, BlockPos pos, Player player,
+                                               BlockPos attachedPos, boolean aboveHalf) {
         if (!(level instanceof Level l)) {
             return false;
         }
@@ -79,11 +92,15 @@ public abstract class OnSlabPickBlockMixin {
         Vec3 end = eye.add(look.scale(6.0));
         BlockHitResult hit = l.clip(new ClipContext(eye, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
         BlockPos hitPos = hit.getBlockPos();
-        if (hitPos.equals(pos.above())) {
+        if (hitPos.equals(attachedPos)) {
             return true;
         }
-        // 半砖自身的碰撞箱为下半格 [0, 0.5]；只有其上方的“舒适框”（y>0.5）才属于火把/灯笼。
-        // 用严格 >0.5，避免把半砖顶面（y=0.5）也误判为火把。
-        return hitPos.equals(pos) && hit.getLocation().y - pos.getY() > 0.5;
+        if (!hitPos.equals(pos)) {
+            return false;
+        }
+        // 台阶自身的形状只覆盖自己那半格；另一半格属于并入的舒适框（也就是贴着的方块）。
+        // 用严格不等号，避免把台阶自己的那个面（y=0.5）也误判成贴着的方块。
+        double half = hit.getLocation().y - pos.getY();
+        return aboveHalf ? half > 0.5 : half < 0.5;
     }
 }
