@@ -24,13 +24,15 @@ import net.neoforged.neoforge.client.model.data.ModelProperty;
  * <p>背景：原版栅栏的两根横杆在 y=6~9 与 12~15（间距 6/16 格），而贴台阶的位移是 8/16 格，
  * 所以高低不同的两根栅栏，横杆必然错 2/16 格、怎么摆都对不齐。
  *
- * <p>修正规则（与像素示意图一致，只改“台阶侧”那半根横杆）：
+ * <p>修正规则分两类关节（只改“台阶侧”的横杆；位移量都是下横杆下移 2/16 格并改用上横杆那一段贴图）：
  * <ul>
- *     <li>我比邻居高一档（邻居更低）：只保留下横杆，并整体下移 2/16 格（上横杆不画）；</li>
- *     <li>我比邻居低一档（邻居更高）：下横杆下移 2/16 格，上横杆保留。</li>
+ *     <li><b>下移关节</b>（两根里有一根是“下台阶上的栅栏”）：我更高 → 只保留下横杆并下移 2/16；
+ *         我更低 → 下横杆下移 2/16、上横杆保留。</li>
+ *     <li><b>上移关节</b>（两根里有一根是“上台阶下的栅栏”）：我更高 → 下横杆下移 2/16、上横杆保留；
+ *         我更低 → 只保留上横杆（下横杆不画、也不位移）。</li>
  * </ul>
- * 这样我下移后的下横杆与对方的（未位移的）上横杆正好落在同一世界高度，跨台阶处接成一根横杆；
- * 另一侧同理，于是整条“台阶式栅栏”的横杆高度是一致的。
+ * 效果都是：我下移后的下横杆与对方（未位移的）上横杆落在同一世界高度，跨台阶处接成一根横杆，
+ * 而多余的那根（另一侧没有对应的）就不画，避免出现半截横杆。
  *
  * <p>“哪一侧是台阶侧、我是高的一侧还是低的一侧”要看邻居，属于按位置变化的信息；塞进方块状态会让
  * 状态量爆炸。这里借用 NeoForge 的 {@code BakedModel#getModelData(level, pos, state, data)}：
@@ -38,7 +40,7 @@ import net.neoforged.neoforge.client.model.data.ModelProperty;
  */
 public class FenceStepModel extends BakedModelWrapper<BakedModel> {
 
-    /** 每个水平方向占 2 bit：0=不是台阶侧，1=我更高（隐藏上横杆+下横杆下移），2=我更低（仅下横杆下移）。 */
+    /** 每个水平方向占 2 bit 的动作：0=不动，1=去上横杆+下横杆下移，2=下横杆下移，3=去下横杆。 */
     private static final ModelProperty<Integer> STEP = new ModelProperty<>();
 
     /** 与 {@link #computeStepPattern} 中的顺序一致：北、东、南、西。 */
@@ -94,7 +96,10 @@ public class FenceStepModel extends BakedModelWrapper<BakedModel> {
     }
 
     /**
-     * 算出这一格四个水平方向的台阶侧：0=不是，1=我更高（邻居更低），2=我更低（邻居更高）。
+     * 算出这一格四个水平方向的横杆动作（0=不动，1=去上横杆+下横杆下移，2=下横杆下移，3=去下横杆）。
+     *
+     * <p>先判断关节类型：两根里有一根是“下台阶上的栅栏”算下移关节，否则（有一根是“上台阶下的栅栏”）
+     * 算上移关节；两类关节的规则互为镜像。再比底面高度决定我是高的一侧还是低的一侧。
      * 比较用的是栅栏底面（横杆起点）的世界高度——跨台阶连接的两根栅栏并不在同一行。
      *
      * <p>先看同一行的那一侧；那里不是栅栏时再看斜上方/斜下方（跨台阶连接的两根栅栏就是这样斜着相邻的）。
@@ -103,6 +108,7 @@ public class FenceStepModel extends BakedModelWrapper<BakedModel> {
     private static int computeStepPattern(BlockAndTintGetter level, BlockPos pos, BlockState state) {
         try {
             double selfHeight = fenceBaseHeight(state, pos.getY());
+            int selfDisplacement = displacement(state);
             int pattern = 0;
             for (int i = 0; i < HORIZONTAL.length; i++) {
                 Direction dir = HORIZONTAL[i];
@@ -111,16 +117,23 @@ public class FenceStepModel extends BakedModelWrapper<BakedModel> {
                 if (neighbourPos == null) {
                     continue;
                 }
-                double neighbourHeight = fenceBaseHeight(level.getBlockState(neighbourPos), neighbourPos.getY());
-                int kind = 0;
-                if (neighbourHeight < selfHeight - 1.0E-4) {
-                    kind = 1;
-                } else if (neighbourHeight > selfHeight + 1.0E-4) {
-                    kind = 2;
+                BlockState neighbour = level.getBlockState(neighbourPos);
+                int neighbourDisplacement = displacement(neighbour);
+                if (selfDisplacement != 0 && neighbourDisplacement != 0) {
+                    // 两根都有位移（差一整格）：这套 2/16 的规则不适用，保持原版
+                    continue;
                 }
-                if (kind != 0) {
-                    pattern |= kind << (i * 2);
+                double neighbourHeight = fenceBaseHeight(neighbour, neighbourPos.getY());
+                boolean selfHigher = neighbourHeight < selfHeight - 1.0E-4;
+                boolean selfLower = neighbourHeight > selfHeight + 1.0E-4;
+                if (!selfHigher && !selfLower) {
+                    continue;
                 }
+                boolean loweredJoint = selfDisplacement < 0 || neighbourDisplacement < 0;
+                int action = loweredJoint
+                        ? (selfHigher ? 1 : 2)
+                        : (selfHigher ? 2 : 3);
+                pattern |= action << (i * 2);
             }
             return pattern;
         } catch (RuntimeException e) {
@@ -152,7 +165,15 @@ public class FenceStepModel extends BakedModelWrapper<BakedModel> {
         return SlabSupport.isUnderTopSlab(state) ? y + 0.5 : y;
     }
 
-    /** 按台阶侧规则改横杆：下横杆下移 2/16；我更高时上横杆不画。 */
+    /** -1=下台阶上的栅栏（整体下移半格），0=普通，+1=上台阶下的栅栏（整体上移半格）。 */
+    private static int displacement(BlockState state) {
+        if (SlabSupport.isOnSlab(state)) {
+            return -1;
+        }
+        return SlabSupport.isUnderTopSlab(state) ? 1 : 0;
+    }
+
+    /** 按动作改横杆：1=去上横杆+下横杆下移，2=下横杆下移，3=去下横杆。 */
     private static List<BakedQuad> adjustBars(List<BakedQuad> quads, int pattern) {
         List<BakedQuad> out = new ArrayList<>(quads.size());
         for (BakedQuad quad : quads) {
@@ -161,15 +182,27 @@ public class FenceStepModel extends BakedModelWrapper<BakedModel> {
                 out.add(quad);
                 continue;
             }
-            int kind = (pattern >> (bar.direction() * 2)) & 3;
-            if (kind == 0) {
-                out.add(quad);
-            } else if (bar.upper()) {
-                if (kind != 1) {
+            switch ((pattern >> (bar.direction() * 2)) & 3) {
+                case 1 -> {
+                    if (!bar.upper()) {
+                        out.add(shiftDown(quad));
+                    }
+                }
+                case 2 -> {
+                    if (bar.upper()) {
+                        out.add(quad);
+                    } else {
+                        out.add(shiftDown(quad));
+                    }
+                }
+                case 3 -> {
+                    if (bar.upper()) {
+                        out.add(quad);
+                    }
+                }
+                default -> {
                     out.add(quad);
                 }
-            } else {
-                out.add(shiftDown(quad));
             }
         }
         return out;
