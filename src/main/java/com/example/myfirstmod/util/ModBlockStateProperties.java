@@ -1,6 +1,5 @@
 package com.example.myfirstmod.util;
 
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.block.state.properties.Property;
 
@@ -11,9 +10,13 @@ public class ModBlockStateProperties {
     public static final EnumProperty<FluidType> FLUID_TYPE =
             EnumProperty.create("btsdhz_fluid", FluidType.class);
 
-    // 竖楼梯标记：false=原版平放楼梯，true=竖楼梯
-    public static final BooleanProperty VERTICAL =
-            BooleanProperty.create("btsdhz_vertical");
+    // 竖楼梯标记：false=原版平放楼梯，true=竖楼梯。
+    //
+    // 必须用默认 false 的属性：原版 BooleanProperty 的取值顺序是 [true, false]，
+    // 而“缺属性”会按第一个取值解析。中途加入模组读取旧存档时，存档里没有 btsdhz_vertical，
+    // 用 BooleanProperty 就会把原本的平放楼梯全部解析成竖楼梯（形态凭空改变）。
+    public static final Property<Boolean> VERTICAL =
+            new DefaultFalseBooleanProperty("btsdhz_vertical");
 
     // 竖楼梯连接形态：NONE=普通L / BOTTOM=下拐角 / TOP=上拐角
     public static final EnumProperty<StairConnection> STAIR_CONNECTION =

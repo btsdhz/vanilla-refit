@@ -119,6 +119,11 @@ public class FenceStepModel extends BakedModelWrapper<BakedModel> {
                 }
                 BlockState neighbour = level.getBlockState(neighbourPos);
                 int neighbourDisplacement = displacement(neighbour);
+                if (selfDisplacement == 0 && neighbourDisplacement == 0) {
+                    // 两根都没贴台阶：这是原版本身就存在的高低差（比如栅栏沿楼梯逐格摆放），
+                    // 原版并不会把它们接起来，本模组也不该去改横杆，保持原版外观。
+                    continue;
+                }
                 if (selfDisplacement != 0 && neighbourDisplacement != 0) {
                     // 两根都有位移（差一整格）：这套 2/16 的规则不适用，保持原版
                     continue;

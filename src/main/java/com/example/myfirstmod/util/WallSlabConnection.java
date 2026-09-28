@@ -92,11 +92,19 @@ public final class WallSlabConnection {
                 }
             }
             for (BlockPos candidate : candidates) {
-                refreshWall(level, candidate);
+                // 只有“这一格的正上/正下方刚放下或拆掉台阶”才重算位移标记：这样中途加入模组时，
+                // 老存档里原本贴着下台阶的墙不会被邻格无关的改动改判成下移形态（凭空下沉半格）。
+                // 跨台阶连接本身照旧刷新，它只改连接位与立柱，不动标记。
+                refreshWall(level, candidate, changedSlab && isDirectlyAboveOrBelow(candidate, pos));
             }
         } finally {
             REFRESHING.set(Boolean.FALSE);
         }
+    }
+
+    /** candidate 是否正好在 pos 的正上方或正下方。 */
+    private static boolean isDirectlyAboveOrBelow(BlockPos candidate, BlockPos pos) {
+        return candidate.equals(pos.above()) || candidate.equals(pos.below());
     }
 
     /** 收集某个台阶牵涉的墙：下台阶→台阶上方的墙；上台阶→台阶下方的墙；两者都含台阶四邻的墙。 */
@@ -114,13 +122,14 @@ public final class WallSlabConnection {
     }
 
     /** 重算指定位置的墙，并写回世界（状态没变则不动）。 */
-    private static void refreshWall(Level level, BlockPos pos) {
+    private static void refreshWall(Level level, BlockPos pos, boolean updateSlabMarkers) {
         BlockState state = level.getBlockState(pos);
         if (!(state.getBlock() instanceof WallBlock)) {
             return;
         }
         BlockState updated = state;
-        if (updated.hasProperty(ModBlockStateProperties.ON_SLAB)
+        if (updateSlabMarkers
+                && updated.hasProperty(ModBlockStateProperties.ON_SLAB)
                 && updated.hasProperty(ModBlockStateProperties.UNDER_TOP_SLAB)) {
             boolean onSlab = SlabSupport.isBottomSlab(level, pos.below());
             boolean underTopSlab = !onSlab && SlabSupport.isTopSlab(level, pos.above());

@@ -83,11 +83,16 @@ public abstract class WallOnSlabMixin {
         if (result == null || !result.hasProperty(ModBlockStateProperties.ON_SLAB)) {
             return;
         }
-        boolean onSlab = SlabSupport.isBottomSlab(level, currentPos.below());
-        boolean underTopSlab = !onSlab && SlabSupport.isTopSlab(level, currentPos.above());
-        BlockState withSlab = result
-                .setValue(ModBlockStateProperties.ON_SLAB, onSlab)
-                .setValue(ModBlockStateProperties.UNDER_TOP_SLAB, underTopSlab);
+        // 只有正上/正下方变化（也就是这一格贴着的台阶被放置或拆除）才重新判定位移标记。
+        // 否则邻格随便放个方块都会把老存档里原本贴着下台阶的墙改判成下移形态（凭空下沉半格）。
+        BlockState withSlab = result;
+        if (facing == Direction.UP || facing == Direction.DOWN) {
+            boolean onSlab = SlabSupport.isBottomSlab(level, currentPos.below());
+            boolean underTopSlab = !onSlab && SlabSupport.isTopSlab(level, currentPos.above());
+            withSlab = result
+                    .setValue(ModBlockStateProperties.ON_SLAB, onSlab)
+                    .setValue(ModBlockStateProperties.UNDER_TOP_SLAB, underTopSlab);
+        }
         cir.setReturnValue(WallSlabConnection.withSlabConnections(withSlab, level, currentPos));
     }
 

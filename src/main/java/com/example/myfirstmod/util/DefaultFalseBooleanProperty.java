@@ -12,6 +12,9 @@ import net.minecraft.world.level.block.state.properties.Property;
  * 的默认值是 true。对“是否贴合下台阶”这类默认为否定的标记，若沿用 BooleanProperty，
  * 旧存档/未显式保存该属性的方块读取时会默认成 true（即下移形态），导致所有老方块被误判。
  * 此处用 [false, true] 让默认值为 false。
+ *
+ * 已用于：{@code btsdhz_on_slab}、{@code btsdhz_under_top_slab}、{@code btsdhz_vertical}
+ * （竖楼梯标记，若默认 true 会让旧存档里的平放楼梯全部变成竖楼梯）。
  */
 public class DefaultFalseBooleanProperty extends Property<Boolean> {
     private final ImmutableSet<Boolean> values = ImmutableSet.of(false, true);

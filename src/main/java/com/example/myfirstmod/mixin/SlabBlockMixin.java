@@ -148,6 +148,12 @@ public abstract class SlabBlockMixin {
                 return;
             }
         }
+        // FLUID_TYPE=none 时不一定是空：旧存档、结构模板、/setblock 等来源的台阶只有
+        // 原版的 waterlogged=true，不能一律返回空——否则中途加入模组会让原本含水的台阶丢掉水。
+        if (state.hasProperty(BlockStateProperties.WATERLOGGED) && state.getValue(BlockStateProperties.WATERLOGGED)) {
+            cir.setReturnValue(Fluids.WATER.getSource(false));
+            return;
+        }
         cir.setReturnValue(Fluids.EMPTY.defaultFluidState());
     }
 

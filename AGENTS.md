@@ -31,6 +31,7 @@ When the user writes in Chinese, reply in Chinese and keep any internal reasonin
 - Registry ids are lowercase snake_case (`smooth_stone_stairs`), registered through `DeferredRegister` in `ModBlocks`.
 - Assets follow Minecraft paths: `models/block/<id>.json`, `blockstates/<id>.json`, `textures/block/<id>.png`. Per-material model ids use `<base>_<material>`.
 - Custom model UV maps must stay consistent with the base templates (each face samples the portion of the 16×16 texture it covers); geometry changes require re-running `runData`.
+- New block-state properties must resolve to the vanilla look when the property is absent: booleans use `util/DefaultFalseBooleanProperty`, enums put the vanilla form first. Missing properties are decoded as the first allowed value, so the wrong order makes existing worlds change shape when the mod is added mid-save.
 
 ## Testing Guidelines
 
