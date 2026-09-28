@@ -28,6 +28,11 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
  *
  * <p>与墙不同的是：栅栏的连接状态只有连/不连两种（{@code CrossCollisionBlock} 的四个布尔属性），
  * 没有墙那种 TALL/LOW 墙臂与立柱开关，所以这里只补连接位，不处理任何高度或立柱。
+ *
+ * <p>另外还负责栅栏特有的“横杆对不齐”变通：原版栅栏的两根横杆在 y=6~9 与 12~15，
+ * 间距 6/16 格，而贴台阶的位移是 8/16 格，所以高低不同的两根栅栏无论怎么摆都对不齐（必然错 2/16）。
+ * 因此当相邻栅栏的“底面高度”不同时，只让<b>低</b>的那一侧保留连接（它的横杆伸到格子边界），
+ * <b>高</b>的那一侧把连接位关掉（横杆止于自己的立柱），避免两处半截横杆各画一半、看上去像错开的乱麻。
  */
 public final class FenceSlabConnection {
 
@@ -146,13 +151,52 @@ public final class FenceSlabConnection {
                     result = result.setValue(fenceProperty(dir), true);
                 }
             }
+            result = suppressMisalignedFenceBars(result, level, pos);
             return result;
         } finally {
             RECALCULATING.set(Boolean.FALSE);
         }
     }
 
-    /** 本栅栏是否可能与跨格连接有关（自己已位移、或水平邻居里有台阶）。 */
+    /**
+     * 栅栏特有变通：相邻栅栏底面高度不同（横杆必然差 2/16 格）时，高的一侧不画这半根横杆。
+     *
+     * <p>连接位关掉后，高侧栅栏的横杆止于自己的立柱；低侧栅栏保留连接，横杆伸到格子边界接上，
+     * 视觉上由低的一侧带过去，不再出现两组半截横杆错位堆在一起的情况。
+     */
+    private static BlockState suppressMisalignedFenceBars(BlockState state, LevelAccessor level, BlockPos pos) {
+        BlockState result = state;
+        double selfHeight = fenceBaseHeight(result, pos);
+        for (Direction dir : HORIZONTAL) {
+            if (!result.getValue(fenceProperty(dir))) {
+                continue;
+            }
+            BlockPos neighbourPos = pos.relative(dir);
+            BlockState neighbour = level.getBlockState(neighbourPos);
+            if (neighbour.is(BlockTags.FENCES) && selfHeight > fenceBaseHeight(neighbour, neighbourPos)) {
+                result = result.setValue(fenceProperty(dir), false);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 栅栏底面（横杆起点）的世界高度：上台阶下的栅栏高半格、下台阶上的栅栏低半格。
+     * 相邻栅栏按这个高度比较，而不是按所在格子比较——跨台阶连接的两根栅栏并不在同一行。
+     */
+    private static double fenceBaseHeight(BlockState state, BlockPos pos) {
+        if (SlabSupport.isUnderTopSlab(state)) {
+            return pos.getY() + 0.5;
+        }
+        return SlabSupport.isOnSlab(state) ? pos.getY() - 0.5 : pos.getY();
+    }
+
+    /**
+     * 本栅栏是否与台阶适配有关（自己已位移、水平邻居里有台阶，或水平邻居是贴台阶的位移栅栏）。
+     *
+     * <p>最后一种是为了“横杆对不齐”的变通：普通栅栏旁边是贴台阶的位移栅栏时，
+     * 它自己虽然不位移，也要把朝向那一侧的连接位让给低的一侧。
+     */
     private static boolean isSlabRelated(BlockState state, LevelAccessor level, BlockPos pos) {
         if (SlabSupport.isOnSlab(state) || SlabSupport.isUnderTopSlab(state)) {
             return true;
@@ -160,6 +204,11 @@ public final class FenceSlabConnection {
         for (Direction dir : HORIZONTAL) {
             BlockPos neighbourPos = pos.relative(dir);
             if (SlabSupport.isBottomSlab(level, neighbourPos) || SlabSupport.isTopSlab(level, neighbourPos)) {
+                return true;
+            }
+            BlockState neighbour = level.getBlockState(neighbourPos);
+            if (neighbour.is(BlockTags.FENCES)
+                    && (SlabSupport.isOnSlab(neighbour) || SlabSupport.isUnderTopSlab(neighbour))) {
                 return true;
             }
         }
