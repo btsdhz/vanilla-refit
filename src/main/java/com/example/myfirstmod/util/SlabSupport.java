@@ -66,10 +66,25 @@ public final class SlabSupport {
     }
 
     /**
+     * @return 该方块状态是否为“上移（UNDER_TOP_SLAB=true）的方块”（灯笼/墙，贴合上台阶底面）。
+     */
+    public static boolean isUnderTopSlab(BlockState state) {
+        return state.hasProperty(ModBlockStateProperties.UNDER_TOP_SLAB)
+                && state.getValue(ModBlockStateProperties.UNDER_TOP_SLAB);
+    }
+
+    /**
      * 把方块形状整体下移半格（8/16 单位），用于“放在下台阶上并贴齐”的方块。
      */
     public static VoxelShape shiftDownHalf(VoxelShape shape) {
         return shape.move(0.0, -0.5, 0.0);
+    }
+
+    /**
+     * 把方块形状整体上移半格（8/16 单位），用于“放在上台阶下方并贴齐”的方块。
+     */
+    public static VoxelShape shiftUpHalf(VoxelShape shape) {
+        return shape.move(0.0, 0.5, 0.0);
     }
 
     /**

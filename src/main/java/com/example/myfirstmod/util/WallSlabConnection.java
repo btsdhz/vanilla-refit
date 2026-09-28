@@ -15,13 +15,14 @@ import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.block.state.properties.WallSide;
 
 /**
- * “墙 + 下台阶”的跨格连接逻辑。
+ * “墙 + 台阶”的跨格连接逻辑。
  *
- * <p>墙放到下台阶上时会整体下移半格（btsdhz_on_slab=true）。此时它要连接的墙并不在同一层，
- * 而在“脚下那格台阶”的四周：
+ * <p>墙贴到台阶上时会整体位移半格（下台阶上的墙 btsdhz_on_slab=true，上台阶下的墙
+ * btsdhz_under_top_slab=true）。此时它要连接的墙并不在同一层，而在“台阶那一格”的四周：
  * <ul>
- *     <li>下移墙自身：看脚下台阶格四个水平邻居是不是墙类方块，是则补上对应方向的墙臂；</li>
- *     <li>台阶四周的普通墙：看自己朝着台阶的那一面，台阶上方是不是下移墙，是则补上墙臂。</li>
+ *     <li>位移墙自身：下移墙看脚下台阶格的四个水平邻居、上移墙看头顶台阶格的四个水平邻居
+ *         是不是墙类方块，是则补上对应方向的墙臂；</li>
+ *     <li>台阶四周的普通墙：看自己朝着台阶的那一面，台阶上/下方是不是对应的位移墙，是则补上墙臂。</li>
  * </ul>
  *
  * <p>这类连接是原版不会计算的斜向关系，原版的邻居更新也不会通知到，所以这里除了在墙自身
@@ -46,7 +47,7 @@ public final class WallSlabConnection {
     }
 
     /**
-     * 给墙补上跨格连接（带廉价过滤：与下台阶无关的墙直接原样返回）。
+     * 给墙补上跨格连接（带廉价过滤：与台阶无关的墙直接原样返回）。
      */
     public static BlockState withSlabConnections(BlockState state, LevelAccessor level, BlockPos pos) {
         if (RECALCULATING.get() || !(state.getBlock() instanceof WallBlock)) {
@@ -85,6 +86,7 @@ public final class WallSlabConnection {
             if (changedSlab) {
                 // 台阶刚被移除时 pos 处已经不是台阶，用旧状态再补一次它牵涉的墙
                 candidates.add(pos.above());
+                candidates.add(pos.below());
                 for (Direction dir : HORIZONTAL) {
                     candidates.add(pos.relative(dir));
                 }
@@ -97,12 +99,15 @@ public final class WallSlabConnection {
         }
     }
 
-    /** 收集某个下台阶牵涉的墙：台阶上方的墙 + 台阶四邻的墙。 */
+    /** 收集某个台阶牵涉的墙：下台阶→台阶上方的墙；上台阶→台阶下方的墙；两者都含台阶四邻的墙。 */
     private static void collectSlabWalls(Level level, BlockPos slabPos, Set<BlockPos> out) {
-        if (!SlabSupport.isBottomSlab(level, slabPos)) {
+        if (SlabSupport.isBottomSlab(level, slabPos)) {
+            out.add(slabPos.above());
+        } else if (SlabSupport.isTopSlab(level, slabPos)) {
+            out.add(slabPos.below());
+        } else {
             return;
         }
-        out.add(slabPos.above());
         for (Direction dir : HORIZONTAL) {
             out.add(slabPos.relative(dir));
         }
@@ -115,8 +120,13 @@ public final class WallSlabConnection {
             return;
         }
         BlockState updated = state;
-        if (updated.hasProperty(ModBlockStateProperties.ON_SLAB)) {
-            updated = updated.setValue(ModBlockStateProperties.ON_SLAB, SlabSupport.isBottomSlab(level, pos.below()));
+        if (updated.hasProperty(ModBlockStateProperties.ON_SLAB)
+                && updated.hasProperty(ModBlockStateProperties.UNDER_TOP_SLAB)) {
+            boolean onSlab = SlabSupport.isBottomSlab(level, pos.below());
+            boolean underTopSlab = !onSlab && SlabSupport.isTopSlab(level, pos.above());
+            updated = updated
+                    .setValue(ModBlockStateProperties.ON_SLAB, onSlab)
+                    .setValue(ModBlockStateProperties.UNDER_TOP_SLAB, underTopSlab);
         }
         updated = recomputeConnections(updated, level, pos);
         if (updated != state) {
@@ -152,20 +162,21 @@ public final class WallSlabConnection {
         return state.updateShape(Direction.UP, level.getBlockState(abovePos), level, pos, abovePos);
     }
 
-    /** 本墙是否可能与跨格连接有关（自己不缺、或水平邻居里有下台阶）。 */
+    /** 本墙是否可能与跨格连接有关（自己已位移、或水平邻居里有台阶）。 */
     private static boolean isSlabRelated(BlockState state, LevelAccessor level, BlockPos pos) {
-        if (SlabSupport.isOnSlab(state)) {
+        if (SlabSupport.isOnSlab(state) || SlabSupport.isUnderTopSlab(state)) {
             return true;
         }
         for (Direction dir : HORIZONTAL) {
-            if (SlabSupport.isBottomSlab(level, pos.relative(dir))) {
+            BlockPos neighbourPos = pos.relative(dir);
+            if (SlabSupport.isBottomSlab(level, neighbourPos) || SlabSupport.isTopSlab(level, neighbourPos)) {
                 return true;
             }
         }
         return false;
     }
 
-    /** 判断 dir 方向是否需要“跨下台阶”连接。 */
+    /** 判断 dir 方向是否需要“跨台阶”连接。 */
     private static boolean connectsAcrossSlab(BlockState self, LevelAccessor level, BlockPos pos, Direction dir) {
         // 下移墙：看脚下台阶格该方向的邻居
         if (SlabSupport.isOnSlab(self)) {
@@ -175,11 +186,24 @@ public final class WallSlabConnection {
                 return true;
             }
         }
+        // 上移墙（贴在上台阶下方）：看头顶台阶格该方向的邻居
+        if (SlabSupport.isUnderTopSlab(self)) {
+            BlockPos slabPos = pos.above();
+            if (SlabSupport.isTopSlab(level, slabPos)
+                    && level.getBlockState(slabPos.relative(dir)).is(BlockTags.WALLS)) {
+                return true;
+            }
+        }
         // 普通墙：看水平邻居是不是下台阶，且台阶上方是下移墙
         BlockPos neighbourPos = pos.relative(dir);
         if (SlabSupport.isBottomSlab(level, neighbourPos)) {
             BlockState above = level.getBlockState(neighbourPos.above());
             return above.is(BlockTags.WALLS) && SlabSupport.isOnSlab(above);
+        }
+        // 普通墙：看水平邻居是不是上台阶，且台阶下方是上移墙
+        if (SlabSupport.isTopSlab(level, neighbourPos)) {
+            BlockState below = level.getBlockState(neighbourPos.below());
+            return below.is(BlockTags.WALLS) && SlabSupport.isUnderTopSlab(below);
         }
         return false;
     }

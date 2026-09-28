@@ -25,8 +25,10 @@ public class ModBlockStateProperties {
     public static final Property<Boolean> ON_SLAB =
             new DefaultFalseBooleanProperty("btsdhz_on_slab");
 
-    // 灯笼/灵魂灯笼是否放在“上台阶”（上半台阶）下方。
-    // true 时模型与碰撞箱整体上移半格，悬挂贴合上台阶的底面。
-    public static final BooleanProperty UNDER_TOP_SLAB =
-            BooleanProperty.create("btsdhz_under_top_slab");
+    // 灯笼/灵魂灯笼/墙是否放在“上台阶”（上半台阶）下方。
+    // true 时模型与碰撞箱整体上移半格，贴合上台阶的底面。
+    // 与 ON_SLAB 同理用默认 false 的属性：结构模板等只按属性名读取旧数据时，
+    // 缺失该属性不会被误判成“上移形态”。
+    public static final Property<Boolean> UNDER_TOP_SLAB =
+            new DefaultFalseBooleanProperty("btsdhz_under_top_slab");
 }

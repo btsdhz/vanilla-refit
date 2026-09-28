@@ -24,32 +24,39 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.Map;
 
 /**
- * 墙放在“下台阶”（下半台阶）上时，新增 btsdhz_on_slab 属性并让模型与碰撞箱下移半格，
- * 使墙贴齐下台阶的上表面，不再悬空。
+ * 墙与台阶的贴合：
  *
- * 除了位移，还负责“跨下台阶”的墙连接：下移墙与脚下台阶格四周的墙互相连接，
+ * <ul>
+ *     <li>墙放在“下台阶”（下半台阶）上：btsdhz_on_slab=true，模型与碰撞箱下移半格，
+ *         贴齐下台阶的上表面；</li>
+ *     <li>墙放在“上台阶”（上半台阶）下方：btsdhz_under_top_slab=true，模型与碰撞箱上移半格，
+ *         贴齐上台阶的底面。</li>
+ * </ul>
+ *
+ * 除了位移，还负责“跨台阶”的墙连接：位移后的墙与相邻台阶格四周的墙互相连接，
  * 具体判定见 {@link WallSlabConnection}。
  */
 @Mixin(WallBlock.class)
 public abstract class WallOnSlabMixin {
 
     // WallBlock 用“完整 BlockState → 形状”的预计算 ImmutableMap。该 map 在构造时用
-    // defaultBlockState() 构建，而 ON_SLAB 默认 false，所以 map 键只含 ON_SLAB=false。
-    // 为让 ON_SLAB=true（上台阶）的墙也能命中，查询前统一把 ON_SLAB 归一化到 false 再查，
-    // 命中后再按实际 isOnSlab 决定是否位移。
+    // defaultBlockState() 构建，ON_SLAB / UNDER_TOP_SLAB 的默认值都是 false，所以 map 键只含
+    // 两个属性都为 false 的组合。为让位移形态的墙也能命中，查询前统一把这两个属性归一化到
+    // false 再查，命中后再按实际状态决定是否位移、往哪个方向位移。
     @Shadow
     private Map<BlockState, VoxelShape> shapeByIndex;
 
     @Shadow
     private Map<BlockState, VoxelShape> collisionShapeByIndex;
 
-    // 给墙增加 btsdhz_on_slab 属性
+    // 给墙增加 btsdhz_on_slab / btsdhz_under_top_slab 属性
     @Inject(method = "createBlockStateDefinition", at = @At("RETURN"), remap = false)
     private void btsdhz_original$addOnSlab(StateDefinition.Builder<Block, BlockState> builder, CallbackInfo ci) {
         builder.add(ModBlockStateProperties.ON_SLAB);
+        builder.add(ModBlockStateProperties.UNDER_TOP_SLAB);
     }
 
-    // 放置时：下方是下台阶则置 ON_SLAB=true
+    // 放置时：下方是下台阶则下移；否则上方是上台阶则上移
     @Inject(method = "getStateForPlacement", at = @At("RETURN"), cancellable = true, remap = false)
     private void btsdhz_original$getStateForPlacement(BlockPlaceContext context, CallbackInfoReturnable<BlockState> cir) {
         BlockState state = cir.getReturnValue();
@@ -59,11 +66,15 @@ public abstract class WallOnSlabMixin {
         Level level = context.getLevel();
         BlockPos pos = context.getClickedPos();
         boolean onSlab = SlabSupport.isBottomSlab(level, pos.below());
-        BlockState withSlab = state.setValue(ModBlockStateProperties.ON_SLAB, onSlab);
+        // 一个方块不可能同时贴合上下两个台阶（位移方向互斥），下台阶优先
+        boolean underTopSlab = !onSlab && SlabSupport.isTopSlab(level, pos.above());
+        BlockState withSlab = state
+                .setValue(ModBlockStateProperties.ON_SLAB, onSlab)
+                .setValue(ModBlockStateProperties.UNDER_TOP_SLAB, underTopSlab);
         cir.setReturnValue(WallSlabConnection.withSlabConnections(withSlab, level, pos));
     }
 
-    // 邻居更新时（含下方放台阶/拆台阶）重新同步 ON_SLAB，保证反向场景（先放墙后放台阶）也生效
+    // 邻居更新时（含上下放台阶/拆台阶）重新同步两个标记，保证反向场景（先放墙后放台阶）也生效
     @Inject(method = "updateShape", at = @At("RETURN"), cancellable = true, remap = false)
     private void btsdhz_original$updateShape(BlockState state, Direction facing, BlockState facingState,
                                              LevelAccessor level, BlockPos currentPos, BlockPos facingPos,
@@ -73,25 +84,38 @@ public abstract class WallOnSlabMixin {
             return;
         }
         boolean onSlab = SlabSupport.isBottomSlab(level, currentPos.below());
-        BlockState withSlab = result.setValue(ModBlockStateProperties.ON_SLAB, onSlab);
+        boolean underTopSlab = !onSlab && SlabSupport.isTopSlab(level, currentPos.above());
+        BlockState withSlab = result
+                .setValue(ModBlockStateProperties.ON_SLAB, onSlab)
+                .setValue(ModBlockStateProperties.UNDER_TOP_SLAB, underTopSlab);
         cir.setReturnValue(WallSlabConnection.withSlabConnections(withSlab, level, currentPos));
     }
 
     /**
-     * 命中结果：ON_SLAB=false（普通墙）→ 基础形状；ON_SLAB=true（墙上台阶）→ 基础形状下移半格。
+     * 命中结果：普通墙 → 基础形状；下台阶上的墙 → 基础形状下移半格；上台阶下的墙 → 上移半格。
      */
     private VoxelShape resolveShape(Map<BlockState, VoxelShape> map, BlockState state) {
         boolean onSlab = SlabSupport.isOnSlab(state);
-        // ON_SLAB 默认 false，故 map 键只登记 ON_SLAB=false；统一用 false 命中基础形状
-        BlockState lookup = state.setValue(ModBlockStateProperties.ON_SLAB, false);
+        boolean underTopSlab = SlabSupport.isUnderTopSlab(state);
+        // 两个属性默认都是 false，map 键只登记 false；统一归一化到 false 命中基础形状
+        BlockState lookup = state;
+        if (lookup.hasProperty(ModBlockStateProperties.ON_SLAB)) {
+            lookup = lookup.setValue(ModBlockStateProperties.ON_SLAB, false);
+        }
+        if (lookup.hasProperty(ModBlockStateProperties.UNDER_TOP_SLAB)) {
+            lookup = lookup.setValue(ModBlockStateProperties.UNDER_TOP_SLAB, false);
+        }
         VoxelShape base = map.get(lookup);
         if (base == null) {
             return null;
         }
-        return onSlab ? SlabSupport.shiftDownHalf(base) : base;
+        if (onSlab) {
+            return SlabSupport.shiftDownHalf(base);
+        }
+        return underTopSlab ? SlabSupport.shiftUpHalf(base) : base;
     }
 
-    // 交互形状：墙上台阶则下移半格（与下移后的模型对齐）
+    // 交互形状：下台阶上的墙下移半格、上台阶下的墙上移半格（与位移后的模型对齐）
     @Inject(method = "getShape", at = @At("HEAD"), cancellable = true, remap = false)
     private void btsdhz_original$getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context,
                                           CallbackInfoReturnable<VoxelShape> cir) {
@@ -101,7 +125,7 @@ public abstract class WallOnSlabMixin {
         }
     }
 
-    // 物理碰撞形状：墙上台阶则下移半格（保留墙的碰撞阻挡）
+    // 物理碰撞形状：与交互形状同样位移（保留墙的碰撞阻挡）
     @Inject(method = "getCollisionShape", at = @At("HEAD"), cancellable = true, remap = false)
     private void btsdhz_original$getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context,
                                                    CallbackInfoReturnable<VoxelShape> cir) {
