@@ -3,10 +3,17 @@ package com.example.myfirstmod.client;
 import com.example.myfirstmod.client.model.SlabbedLoweringModel;
 import com.example.myfirstmod.client.model.SlabbedRaisingModel;
 import com.example.myfirstmod.client.model.MixedSlabModel;
+import com.example.myfirstmod.client.model.FenceStepModel;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.client.renderer.block.BlockModelShaper;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.FenceBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.event.ModelEvent;
 
 /**
@@ -24,6 +31,10 @@ public class SlabbedModelEvents {
     private static final String MIXED_SLAB_PATH = "merged_slab";
 
     public static void onModifyBakingResult(ModelEvent.ModifyBakingResult event) {
+        // 栅栏：台阶侧的横杆要按邻居高低实时修正，必须在“上/下台阶位移包装”的内层，
+        // 所以先包装栅栏模型（它按位置取 ModelData 决定改哪半根横杆），再交给下面的位移包装。
+        wrapFenceModels(event);
+
         List<ModelResourceLocation> toLower = new ArrayList<>();
         List<ModelResourceLocation> toRaise = new ArrayList<>();
         for (ModelResourceLocation loc : event.getModels().keySet()) {
@@ -53,6 +64,23 @@ public class SlabbedModelEvents {
                 BakedModel original = event.getModels().get(loc);
                 if (original != null) {
                     event.getModels().put(loc, new MixedSlabModel(original));
+                }
+            }
+        }
+    }
+
+    /** 把每个栅栏方块状态的模型包一层 {@link FenceStepModel}（没台阶侧时行为与原模型完全一致）。 */
+    private static void wrapFenceModels(ModelEvent.ModifyBakingResult event) {
+        for (Block block : BuiltInRegistries.BLOCK) {
+            if (!(block instanceof FenceBlock)) {
+                continue;
+            }
+            ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(block);
+            for (BlockState state : block.getStateDefinition().getPossibleStates()) {
+                ModelResourceLocation location = BlockModelShaper.stateToModelLocation(blockId, state);
+                BakedModel original = event.getModels().get(location);
+                if (original != null && !(original instanceof FenceStepModel)) {
+                    event.getModels().put(location, new FenceStepModel(original));
                 }
             }
         }
