@@ -151,7 +151,7 @@ public final class WallSlabConnection {
                 }
             }
             if (SlabSupport.isUnderTopSlab(result)) {
-                result = forceFullHeightUnderTopSlab(result);
+                result = fillUpUnderTopSlab(result, level, pos);
             }
             return result;
         } finally {
@@ -160,7 +160,7 @@ public final class WallSlabConnection {
     }
 
     /**
-     * 上台阶下的墙补成“完整高度”的墙（立柱 + 墙臂都是 16/16 高）。
+     * 上台阶下的墙补成原版“满高墙”的样子（墙臂提到 16/16 高），立柱仍按原版规则决定。
      *
      * <p>原版把墙当成“上方有方块”的条件是：上方方块碰撞形状的 DOWN 面能盖住立柱测试框。
      * 完整方块的 DOWN 面就是它自身（0~16 全高），所以成立；而上半台阶的下表面只占半格，
@@ -168,11 +168,21 @@ public final class WallSlabConnection {
      * 墙只有 14/16 高的墙臂、也没有立柱。我们虽然把墙整体上移半格让它贴上台阶底面，
      * 但墙自己的形状仍矮 2/16，看上去就是台阶下面一条缝。
      *
-     * <p>所以这里对“上移墙”手动按“上方被完整盖住”处理：补上立柱（UP=true），
-     * 并把已有墙臂提升为 TALL，位移半格后正好顶到上台阶底面。
+     * <p>这里对“上移墙”按“上方被完整盖住”处理墙臂：已有墙臂提升为 TALL，位移半格后正好顶到台阶底面，
+     * 也就成了原版那种满高墙。立柱（UP）不强行补：原版还有一条规则——对向两臂都是 TALL 时不再画立柱
+     * （直墙段看起来就是一堵均匀的满高墙）；只有孤墙、拐角这类形态才补立柱。所以这里先把墙臂设成 TALL，
+     * 交给原版按这个外形重算一次 UP（它会把墙臂顺带算回 LOW），再把墙臂设回 TALL，只保留原版的立柱结论。
      */
-    private static BlockState forceFullHeightUnderTopSlab(BlockState state) {
-        BlockState result = state.setValue(WallBlock.UP, true);
+    private static BlockState fillUpUnderTopSlab(BlockState state, LevelAccessor level, BlockPos pos) {
+        BlockPos abovePos = pos.above();
+        BlockState postDecision = setArmsTall(state)
+                .updateShape(Direction.UP, level.getBlockState(abovePos), level, pos, abovePos);
+        return setArmsTall(postDecision);
+    }
+
+    /** 把已有墙臂都提升为 TALL（16/16 高），NONE 的保持不变。 */
+    private static BlockState setArmsTall(BlockState state) {
+        BlockState result = state;
         for (Direction dir : HORIZONTAL) {
             EnumProperty<WallSide> property = wallProperty(dir);
             if (result.getValue(property) != WallSide.NONE) {
