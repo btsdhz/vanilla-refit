@@ -14,7 +14,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SlabBlock;
-import net.minecraft.world.level.block.WallBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -66,15 +65,6 @@ public abstract class SlabBlockMixin {
     private static final VoxelShape COMFORT_LANTERN = Shapes.or(
             Block.box(5.0, 8.0, 5.0, 11.0, 15.0, 11.0),
             Block.box(6.0, 15.0, 6.0, 10.0, 17.0, 10.0));
-
-    /**
-     * 栅栏/墙舒适框：上方是下移栅栏/墙时使用。栅栏立柱 X/Z 6~10（与火把立柱同宽），
-     * 墙柱虽更宽，但中心立柱也可用此框命中。
-     * Y 8~24（完整 16 像素 = 一个方块高）：从下台阶上表面（0.5）一直铺到上方方块下移后
-     * 的顶端（1.5），保证上台阶下方的栅栏/墙整段都能被点击/拾取。
-     */
-    @Unique
-    private static final VoxelShape COMFORT_FENCE = Block.box(6.0, 8.0, 6.0, 10.0, 24.0, 10.0);
 
     // ===== 1. 注册属性 =====
     @Inject(method = "createBlockStateDefinition", at = @At("RETURN"), remap = false)
@@ -202,13 +192,13 @@ public abstract class SlabBlockMixin {
                         comfort = COMFORT_LANTERN;
                     } else if (above.is(ModTags.ON_SLAB_TORCH)) {
                         comfort = COMFORT_TORCH;
-                    } else if (above.getBlock() instanceof WallBlock) {
-                        // 墙的立柱会随连接状态消失（四面相连时只剩“光滑”的墙段），固定框会对不上，
-                        // 因此直接取墙自身当前的形状（WallOnSlabMixin 已把它下移半格），再从“上方格
-                        // 坐标系”换算到“台阶格坐标系”（整体上移一格），保证台阶上显示的轮廓与墙一致。
-                        comfort = above.getShape(level, pos.above(), context).move(0.0, 1.0, 0.0);
                     } else {
-                        comfort = COMFORT_FENCE;
+                        // 墙/栅栏等：立柱与连接会随状态变化（墙的立柱可能消失、只剩“光滑”墙段；
+                        // 栅栏的横杆会随连接伸展），固定框对不上，因此直接取方块自身当前的形状
+                        // （WallOnSlabMixin / CrossCollisionOnSlabMixin 已把它下移半格），
+                        // 再从“上方格坐标系”换算到“台阶格坐标系”（整体上移一格），
+                        // 保证台阶上显示的轮廓与贴着的方块一致。
+                        comfort = above.getShape(level, pos.above(), context).move(0.0, 1.0, 0.0);
                     }
                     cir.setReturnValue(Shapes.or(cir.getReturnValue(), comfort));
                 }

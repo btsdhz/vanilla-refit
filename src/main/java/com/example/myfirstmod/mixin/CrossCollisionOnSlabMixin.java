@@ -13,10 +13,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * CrossCollisionBlock（栅栏等）形状下移半格。
+ * CrossCollisionBlock（栅栏等）形状按台阶位移半格。
  *
  * 栅栏继承了 CrossCollisionBlock 的 getShape / getCollisionShape（不覆写），
- * 所以形状位移要注入到基类；只有带 btsdhz_on_slab=true 的状态才位移，
+ * 所以形状位移要注入到基类；下台阶上的栅栏（btsdhz_on_slab=true）下移半格、
+ * 上台阶下的栅栏（btsdhz_under_top_slab=true）上移半格，
  * 铁栅栏等其它子类没有该属性，自然不会位移。
  */
 @Mixin(CrossCollisionBlock.class)
@@ -25,16 +26,26 @@ public abstract class CrossCollisionOnSlabMixin {
     @Inject(method = "getShape", at = @At("RETURN"), cancellable = true, remap = false)
     private void btsdhz_original$getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context,
                                           CallbackInfoReturnable<VoxelShape> cir) {
-        if (SlabSupport.isOnSlab(state)) {
-            cir.setReturnValue(SlabSupport.shiftDownHalf(cir.getReturnValue()));
+        VoxelShape shifted = shiftForSlab(state, cir.getReturnValue());
+        if (shifted != null) {
+            cir.setReturnValue(shifted);
         }
     }
 
     @Inject(method = "getCollisionShape", at = @At("RETURN"), cancellable = true, remap = false)
     private void btsdhz_original$getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context,
                                                    CallbackInfoReturnable<VoxelShape> cir) {
-        if (SlabSupport.isOnSlab(state)) {
-            cir.setReturnValue(SlabSupport.shiftDownHalf(cir.getReturnValue()));
+        VoxelShape shifted = shiftForSlab(state, cir.getReturnValue());
+        if (shifted != null) {
+            cir.setReturnValue(shifted);
         }
+    }
+
+    /** 贴下台阶则下移半格，贴上台阶下方则上移半格；不贴台阶返回 null（保持原版形状）。 */
+    private static VoxelShape shiftForSlab(BlockState state, VoxelShape shape) {
+        if (SlabSupport.isOnSlab(state)) {
+            return SlabSupport.shiftDownHalf(shape);
+        }
+        return SlabSupport.isUnderTopSlab(state) ? SlabSupport.shiftUpHalf(shape) : null;
     }
 }
