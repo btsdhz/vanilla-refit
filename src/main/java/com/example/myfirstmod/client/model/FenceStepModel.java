@@ -7,6 +7,7 @@ import javax.annotation.Nullable;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.BlockTags;
@@ -49,11 +50,10 @@ public class FenceStepModel extends BakedModelWrapper<BakedModel> {
     /** 横杆下移量：2/16 格。 */
     private static final float BAR_SHIFT = -2.0F / 16.0F;
     /**
-     * 下横杆贴图改用上横杆那一段的偏移量：原版两根横杆的贴图行不同——
-     * 下横杆侧面用 uv 的 v=7~10、上横杆用 v=1~4，所以竖直面要整体把 v 减 6/16，
-     * 这样下移后的下横杆贴图和它对接的上横杆完全一致（上/下两个面的 uv 两根横杆本来就一样，不用动）。
+     * 下横杆贴图改用上横杆那一段：原版两根横杆的贴图行不同——下横杆侧面用 uv 的 v=7~10、
+     * 上横杆用 v=1~4，差 6/16 个贴图（不是 6/16 个图集）。上/下两个面两根横杆用的本来就是同一段 uv。
      */
-    private static final float BAR_UV_SHIFT = -6.0F / 16.0F;
+    private static final float BAR_UV_ROWS = -6.0F / 16.0F;
     /** 下横杆 y 6~9、上横杆 y 12~15。 */
     private static final float LOWER_MIN = 6.0F / 16.0F - EPS;
     private static final float LOWER_MAX = 9.0F / 16.0F + EPS;
@@ -227,20 +227,27 @@ public class FenceStepModel extends BakedModelWrapper<BakedModel> {
      * 顶点整体下移 2/16 格，并把这根下横杆的贴图换成上横杆那一段。
      *
      * <p>只改位置不动贴图的话，位移后的横杆贴图会和它对接的上横杆对不上（会看到一条贴图接缝）；
-     * 侧面（法线水平的那四个面，含端头）的 v 减 6/16 正好落到上横杆的贴图行，上/下两个面
+     * 侧面（法线水平的那四个面，含端头）把贴图行往上挪 6/16 正好落到上横杆那一段，上/下两个面
      * 在原版里两根横杆用的就是同一段 uv，所以不动。
+     *
+     * <p>注意顶点里存的 uv 是“图集坐标”——{@code FaceBakery} 写顶点时已经过了一遍
+     * {@code sprite.getU/getV}，所以要按这张 sprite 在图集里的高度换算 6/16，不能直接减 6/16。
      */
     private static BakedQuad shiftDown(BakedQuad quad) {
         int[] src = quad.getVertices();
         int stride = src.length / 4;
         int[] copy = src.clone();
         boolean sideFace = quad.getDirection().getAxis().isHorizontal();
+        TextureAtlasSprite sprite = quad.getSprite();
+        float atlasVShift = sideFace
+                ? (sprite.getV1() - sprite.getV0()) * BAR_UV_ROWS
+                : 0.0F;
         for (int i = 0; i < 4; i++) {
             int positionY = i * stride + 1;
             copy[positionY] = Float.floatToRawIntBits(Float.intBitsToFloat(copy[positionY]) + BAR_SHIFT);
             if (sideFace) {
                 int uvV = i * stride + 5;
-                copy[uvV] = Float.floatToRawIntBits(Float.intBitsToFloat(copy[uvV]) + BAR_UV_SHIFT);
+                copy[uvV] = Float.floatToRawIntBits(Float.intBitsToFloat(copy[uvV]) + atlasVShift);
             }
         }
         return new BakedQuad(copy, quad.getTintIndex(), quad.getDirection(), quad.getSprite(), quad.isShade());
