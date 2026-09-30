@@ -30,7 +30,11 @@ public abstract class IronBarsBlockMixin {
                 ModBlockStateProperties.PANE_NORTH_EAST,
                 ModBlockStateProperties.PANE_SOUTH_EAST,
                 ModBlockStateProperties.PANE_NORTH_WEST,
-                ModBlockStateProperties.PANE_SOUTH_WEST);
+                ModBlockStateProperties.PANE_SOUTH_WEST,
+                ModBlockStateProperties.PANE_NORTH_UP,
+                ModBlockStateProperties.PANE_EAST_UP,
+                ModBlockStateProperties.PANE_SOUTH_UP,
+                ModBlockStateProperties.PANE_WEST_UP);
     }
 
     /**

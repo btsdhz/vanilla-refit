@@ -61,13 +61,15 @@ public class ModBlockStateProvider extends BlockStateProvider {
     );
 
     /**
-     * 玻璃板的八个方向属性：原版的东西南北 + 本模组的四个角。
+     * 玻璃板的 12 个部件属性：原版东西南北（现为各方向的下半）+ 本模组四个方向的上半 + 四个角。
      * 任意一个为 true 时就不渲染默认那根“棍”（立柱与柱面）。
      */
-    private static final List<Property<Boolean>> PANE_DIRECTIONS = List.of(
+    private static final List<Property<Boolean>> PANE_PIECES = List.of(
             CrossCollisionBlock.NORTH, CrossCollisionBlock.EAST, CrossCollisionBlock.SOUTH, CrossCollisionBlock.WEST,
             ModBlockStateProperties.PANE_NORTH_EAST, ModBlockStateProperties.PANE_SOUTH_EAST,
-            ModBlockStateProperties.PANE_NORTH_WEST, ModBlockStateProperties.PANE_SOUTH_WEST);
+            ModBlockStateProperties.PANE_NORTH_WEST, ModBlockStateProperties.PANE_SOUTH_WEST,
+            ModBlockStateProperties.PANE_NORTH_UP, ModBlockStateProperties.PANE_EAST_UP,
+            ModBlockStateProperties.PANE_SOUTH_UP, ModBlockStateProperties.PANE_WEST_UP);
 
     public ModBlockStateProvider(PackOutput output, ExistingFileHelper existingFileHelper) {
         super(output, "btsdhz_original", existingFileHelper);
@@ -144,22 +146,24 @@ public class ModBlockStateProvider extends BlockStateProvider {
     }
 
     /**
-     * 玻璃板（原版命名空间的 *_pane）四角水平面片的 blockstate 与模型。
+     * 玻璃板（原版命名空间的 *_pane）部件化的 blockstate 与模型。
      *
-     * 原版玻璃板的 blockstate 是 multipart（立柱 + 四个方向的 side/noside），
-     * 这里先按原版规则原样重建这些部分，保证外观不变，再追加四个方向属性
-     * btsdhz_ne / btsdhz_se / btsdhz_nw / btsdhz_sw 对应的水平面片：
-     * 四个方向的面片是同一块 1/4 面的几何，用 y 轴旋转分别摆到东南/西南/西北三个角
-     * （基准模型是东北角，y=90→东南，y=180→西南，y=270→西北）。
+     * 一块玻璃板由 12 个部件拼成（12 个属性全为 false 时才是原版那根棍）：
+     *  - 4 个水平面片（btsdhz_ne / se / nw / sw）：1/4 面大小、位于中间高度 8 像素处；
+     *  - 8 个竖直面片：原版东西南北四个方向各分上下两半（下半用原版的
+     *    north/east/south/west 属性，上半用 btsdhz_north_up / east_up / south_up / west_up），
+     *    每半是 8 高 × 8 长 × 2 厚。
+     * 每个部件的基准模型都是朝北（或东北角）的那一块，其余方向靠 y 轴旋转 90/180/270 摆放：
+     * 上/下半模型按 北→东→南→西 旋转，角上面片按 东北→东南→西南→西北 旋转。
      *
      * 铁栏杆虽然也是 IronBarsBlock，但原版结构不同且没有 *_pane_top 之类的贴图，不参与本功能；
      * 其它模组的玻璃板贴图命名不一定遵循原版规则，也先不生成（判定见 util/PaneCornerSupport）。
      *
      * 贴图沿用原版玻璃板的用法（见原版 glass_pane_post / glass_pane_side 模型）：
      * 厚度方向的那 2 像素薄面用 glass_pane_top（#edge，本身就是 2 像素宽的玻璃断面），
-     * 大面用玻璃方块贴图（#pane）。面片的大面是上/下面，四个侧边是厚度方向的薄面。
+     * 大面用玻璃方块贴图（#pane）。
      *
-     * 另外，八个方向属性（原版东西南北 + 本模组四个角）里只要有一个为 true，
+     * 另外，12 个部件属性里只要有一个为 true，
      * 就不渲染默认的那根“棍”（中间立柱 glass_pane_post 与四个未连接方向的柱面 noside）：
      * 棍代表的是“什么都没连”的原版外观，一旦出现连接或角上面片就交给对应部分去画。
      */
@@ -181,24 +185,42 @@ public class ModBlockStateProvider extends BlockStateProvider {
                     .texture("edge", mcLoc("block/" + textureBase + "_pane_top"));
 
             ModelFile post = paneModel(name + "_post");
-            ModelFile side = paneModel(name + "_side");
-            ModelFile sideAlt = paneModel(name + "_side_alt");
             ModelFile noSide = paneModel(name + "_noside");
             ModelFile noSideAlt = paneModel(name + "_noside_alt");
 
+            // 四个方向的上/下半各一份模型（基准都是朝北的那一块，其余方向靠 y 旋转）
+            ModelFile sideLower = models().getBuilder("pane_side_lower_" + name)
+                    .parent(new ModelFile.UncheckedModelFile(modLoc("block/pane_side_lower")))
+                    .texture("pane", mcLoc("block/" + textureBase))
+                    .texture("edge", mcLoc("block/" + textureBase + "_pane_top"));
+            ModelFile sideUpper = models().getBuilder("pane_side_upper_" + name)
+                    .parent(new ModelFile.UncheckedModelFile(modLoc("block/pane_side_upper")))
+                    .texture("pane", mcLoc("block/" + textureBase))
+                    .texture("edge", mcLoc("block/" + textureBase + "_pane_top"));
+
             MultiPartBlockStateBuilder builder = getMultipartBuilder(block);
-            // ===== 原版部分 =====
-            // 默认的“棍”：中间立柱 + 四个未连接方向的柱面，只在八个方向属性全为 false 时渲染
+            // ===== 默认的“棍” =====
+            // 中间立柱 + 四个未连接方向的柱面，只在 12 个部件属性全为 false 时渲染
             noStick(builder.part().modelFile(post).addModel());
             noStick(builder.part().modelFile(noSide).addModel());
             noStick(builder.part().modelFile(noSideAlt).addModel());
             noStick(builder.part().modelFile(noSideAlt).rotationY(90).addModel());
             noStick(builder.part().modelFile(noSide).rotationY(270).addModel());
-            // 有连接的方向：各自的横杆
-            builder.part().modelFile(side).addModel().condition(CrossCollisionBlock.NORTH, true);
-            builder.part().modelFile(side).rotationY(90).addModel().condition(CrossCollisionBlock.EAST, true);
-            builder.part().modelFile(sideAlt).addModel().condition(CrossCollisionBlock.SOUTH, true);
-            builder.part().modelFile(sideAlt).rotationY(90).addModel().condition(CrossCollisionBlock.WEST, true);
+            // ===== 四个方向的上下两半 =====
+            // 下半：原版属性（名字不变，含义改为下半）
+            builder.part().modelFile(sideLower).addModel().condition(CrossCollisionBlock.NORTH, true);
+            builder.part().modelFile(sideLower).rotationY(90).addModel().condition(CrossCollisionBlock.EAST, true);
+            builder.part().modelFile(sideLower).rotationY(180).addModel().condition(CrossCollisionBlock.SOUTH, true);
+            builder.part().modelFile(sideLower).rotationY(270).addModel().condition(CrossCollisionBlock.WEST, true);
+            // 上半：本模组新增的四个属性
+            builder.part().modelFile(sideUpper).addModel()
+                    .condition(ModBlockStateProperties.PANE_NORTH_UP, true);
+            builder.part().modelFile(sideUpper).rotationY(90).addModel()
+                    .condition(ModBlockStateProperties.PANE_EAST_UP, true);
+            builder.part().modelFile(sideUpper).rotationY(180).addModel()
+                    .condition(ModBlockStateProperties.PANE_SOUTH_UP, true);
+            builder.part().modelFile(sideUpper).rotationY(270).addModel()
+                    .condition(ModBlockStateProperties.PANE_WEST_UP, true);
             // ===== 本模组新增：四个角的水平面片 =====
             builder.part().modelFile(corner).addModel()
                     .condition(ModBlockStateProperties.PANE_NORTH_EAST, true);
@@ -215,9 +237,9 @@ public class ModBlockStateProvider extends BlockStateProvider {
         return new ModelFile.UncheckedModelFile(mcLoc("block/" + path));
     }
 
-    /** 默认那根“棍”的判定：八个方向属性必须全为 false。 */
+    /** 默认那根“棍”的判定：12 个部件属性必须全为 false。 */
     private static void noStick(MultiPartBlockStateBuilder.PartBuilder part) {
-        for (Property<Boolean> property : PANE_DIRECTIONS) {
+        for (Property<Boolean> property : PANE_PIECES) {
             part.condition(property, false);
         }
     }

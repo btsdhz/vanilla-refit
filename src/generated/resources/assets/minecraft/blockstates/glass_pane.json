@@ -5,10 +5,14 @@
         "model": "minecraft:block/glass_pane_post"
       },
       "when": {
+        "btsdhz_east_up": "false",
         "btsdhz_ne": "false",
+        "btsdhz_north_up": "false",
         "btsdhz_nw": "false",
         "btsdhz_se": "false",
+        "btsdhz_south_up": "false",
         "btsdhz_sw": "false",
+        "btsdhz_west_up": "false",
         "east": "false",
         "north": "false",
         "south": "false",
@@ -20,10 +24,14 @@
         "model": "minecraft:block/glass_pane_noside"
       },
       "when": {
+        "btsdhz_east_up": "false",
         "btsdhz_ne": "false",
+        "btsdhz_north_up": "false",
         "btsdhz_nw": "false",
         "btsdhz_se": "false",
+        "btsdhz_south_up": "false",
         "btsdhz_sw": "false",
+        "btsdhz_west_up": "false",
         "east": "false",
         "north": "false",
         "south": "false",
@@ -35,10 +43,14 @@
         "model": "minecraft:block/glass_pane_noside_alt"
       },
       "when": {
+        "btsdhz_east_up": "false",
         "btsdhz_ne": "false",
+        "btsdhz_north_up": "false",
         "btsdhz_nw": "false",
         "btsdhz_se": "false",
+        "btsdhz_south_up": "false",
         "btsdhz_sw": "false",
+        "btsdhz_west_up": "false",
         "east": "false",
         "north": "false",
         "south": "false",
@@ -51,10 +63,14 @@
         "y": 90
       },
       "when": {
+        "btsdhz_east_up": "false",
         "btsdhz_ne": "false",
+        "btsdhz_north_up": "false",
         "btsdhz_nw": "false",
         "btsdhz_se": "false",
+        "btsdhz_south_up": "false",
         "btsdhz_sw": "false",
+        "btsdhz_west_up": "false",
         "east": "false",
         "north": "false",
         "south": "false",
@@ -67,10 +83,14 @@
         "y": 270
       },
       "when": {
+        "btsdhz_east_up": "false",
         "btsdhz_ne": "false",
+        "btsdhz_north_up": "false",
         "btsdhz_nw": "false",
         "btsdhz_se": "false",
+        "btsdhz_south_up": "false",
         "btsdhz_sw": "false",
+        "btsdhz_west_up": "false",
         "east": "false",
         "north": "false",
         "south": "false",
@@ -79,7 +99,7 @@
     },
     {
       "apply": {
-        "model": "minecraft:block/glass_pane_side"
+        "model": "btsdhz_original:block/pane_side_lower_glass_pane"
       },
       "when": {
         "north": "true"
@@ -87,7 +107,7 @@
     },
     {
       "apply": {
-        "model": "minecraft:block/glass_pane_side",
+        "model": "btsdhz_original:block/pane_side_lower_glass_pane",
         "y": 90
       },
       "when": {
@@ -96,7 +116,8 @@
     },
     {
       "apply": {
-        "model": "minecraft:block/glass_pane_side_alt"
+        "model": "btsdhz_original:block/pane_side_lower_glass_pane",
+        "y": 180
       },
       "when": {
         "south": "true"
@@ -104,11 +125,46 @@
     },
     {
       "apply": {
-        "model": "minecraft:block/glass_pane_side_alt",
-        "y": 90
+        "model": "btsdhz_original:block/pane_side_lower_glass_pane",
+        "y": 270
       },
       "when": {
         "west": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_side_upper_glass_pane"
+      },
+      "when": {
+        "btsdhz_north_up": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_side_upper_glass_pane",
+        "y": 90
+      },
+      "when": {
+        "btsdhz_east_up": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_side_upper_glass_pane",
+        "y": 180
+      },
+      "when": {
+        "btsdhz_south_up": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_side_upper_glass_pane",
+        "y": 270
+      },
+      "when": {
+        "btsdhz_west_up": "true"
       }
     },
     {

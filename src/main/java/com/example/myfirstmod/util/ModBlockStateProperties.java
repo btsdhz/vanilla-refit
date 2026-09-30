@@ -49,4 +49,20 @@ public class ModBlockStateProperties {
 
     public static final Property<Boolean> PANE_SOUTH_WEST =
             new DefaultFalseBooleanProperty("btsdhz_sw");
+
+    // 玻璃板四个方向的上半部分（北上/东上/南上/西上）。
+    // 原版的 north/east/south/west 属性不改名，含义改为对应方向的“下半部分”，
+    // 两者都为真时该方向就是一整面 16 像素高的玻璃。
+    // 与其它附加形态属性一样默认 false，缺失该属性时保持原版玻璃板外观。
+    public static final Property<Boolean> PANE_NORTH_UP =
+            new DefaultFalseBooleanProperty("btsdhz_north_up");
+
+    public static final Property<Boolean> PANE_EAST_UP =
+            new DefaultFalseBooleanProperty("btsdhz_east_up");
+
+    public static final Property<Boolean> PANE_SOUTH_UP =
+            new DefaultFalseBooleanProperty("btsdhz_south_up");
+
+    public static final Property<Boolean> PANE_WEST_UP =
+            new DefaultFalseBooleanProperty("btsdhz_west_up");
 }
