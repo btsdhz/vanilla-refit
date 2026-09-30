@@ -108,6 +108,17 @@ public abstract class MultiPlayerGameModeMixin {
                 && btsdhz_original$aimsAtSlabHalf(pos, false)) {
             return pos.below();
         }
+        // 下移方块叠着放（如下台阶上的栅栏/墙上再放火把、灯笼）：上方方块整体下移后有一部分伸进本格，
+        // 指向本格上半格时改判为上方方块
+        if (SlabSupport.hasLoweredBlockAbove(this.minecraft.level, pos)
+                && btsdhz_original$aimsAtSlabHalf(pos, true)) {
+            return pos.above();
+        }
+        // 镜像：上移方块叠着放（如上台阶下的墙下面再挂灯笼），指向本格下半格时改判为下方方块
+        if (SlabSupport.hasRaisedBlockBelow(this.minecraft.level, pos)
+                && btsdhz_original$aimsAtSlabHalf(pos, false)) {
+            return pos.below();
+        }
         return pos;
     }
 

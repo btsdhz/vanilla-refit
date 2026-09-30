@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.SlabType;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
@@ -91,6 +92,49 @@ public final class SlabSupport {
      */
     public static boolean isRaisedBlock(BlockGetter level, BlockPos pos) {
         return isUnderTopSlab(level.getBlockState(pos));
+    }
+
+    /**
+     * @return 本格是下移半格的方块，且正上方也是下移半格的方块
+     * （例如下台阶上的栅栏/墙上再放火把、灯笼：上方方块整体下移后有一部分伸进本格）。
+     */
+    public static boolean hasLoweredBlockAbove(BlockGetter level, BlockPos pos) {
+        return isOnSlab(level.getBlockState(pos)) && isOnSlab(level.getBlockState(pos.above()));
+    }
+
+    /**
+     * @return 本格是上移半格的方块，且正下方也是上移半格的方块
+     * （例如上台阶下的墙下面再挂灯笼：下方方块整体上移后有一部分伸进本格）。
+     */
+    public static boolean hasRaisedBlockBelow(BlockGetter level, BlockPos pos) {
+        return isUnderTopSlab(level.getBlockState(pos)) && isUnderTopSlab(level.getBlockState(pos.below()));
+    }
+
+    /**
+     * 叠在本格上方/下方、且同样位移了半格的方块伸进本格的那部分形状（换算到本格坐标）。
+     *
+     * <p>用途与半砖的“舒适框”一致：这种方块真正的碰撞箱有一半落在相邻格子里，
+     * 只在它自己的那一格查形状会漏掉，所以并入本格的拾取形状，指着这半格时也能被准星选中。
+     *
+     * @return 需要并入的形状；没有这种叠放关系时返回 null
+     */
+    public static VoxelShape stackedNeighbourShape(BlockGetter level, BlockPos pos, CollisionContext context) {
+        BlockState self = level.getBlockState(pos);
+        if (isOnSlab(self)) {
+            BlockPos abovePos = pos.above();
+            BlockState above = level.getBlockState(abovePos);
+            if (isOnSlab(above)) {
+                return above.getShape(level, abovePos, context).move(0.0, 1.0, 0.0);
+            }
+        }
+        if (isUnderTopSlab(self)) {
+            BlockPos belowPos = pos.below();
+            BlockState below = level.getBlockState(belowPos);
+            if (isUnderTopSlab(below)) {
+                return below.getShape(level, belowPos, context).move(0.0, -1.0, 0.0);
+            }
+        }
+        return null;
     }
 
     /**

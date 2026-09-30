@@ -14,6 +14,7 @@ import net.minecraft.world.level.block.WallBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -125,6 +126,13 @@ public abstract class WallOnSlabMixin {
     private void btsdhz_original$getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context,
                                           CallbackInfoReturnable<VoxelShape> cir) {
         VoxelShape result = resolveShape(this.shapeByIndex, state);
+        // 上方/下方还有同样位移了半格的方块时，把它伸进本格的那部分并进拾取形状（舒适框），
+        // 碰撞形状不受影响。
+        VoxelShape stacked = SlabSupport.stackedNeighbourShape(level, pos, context);
+        if (stacked != null && result != null) {
+            cir.setReturnValue(Shapes.or(result, stacked));
+            return;
+        }
         if (result != null) {
             cir.setReturnValue(result);
         }

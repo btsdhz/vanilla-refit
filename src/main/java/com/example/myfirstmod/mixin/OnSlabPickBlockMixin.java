@@ -10,7 +10,6 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -44,7 +43,7 @@ public abstract class OnSlabPickBlockMixin {
     )
     private void btsdhz_original$getCloneItemStack(LevelReader level, BlockPos pos, BlockState state,
                                                    CallbackInfoReturnable<ItemStack> cir) {
-        if (!(state.getBlock() instanceof SlabBlock) || !level.isClientSide()) {
+        if (!level.isClientSide()) {
             return;
         }
 
@@ -53,21 +52,30 @@ public abstract class OnSlabPickBlockMixin {
             return;
         }
 
+        // 四种情况：下台阶上贴着的下移方块、上台阶下贴着的上移方块、
+        // 以及“方块的方块叠着放”（下移方块上再放火把/灯笼、上移方块下再挂灯笼）。
         BlockState attached;
+        boolean aboveHalf;
         if (SlabSupport.isBottomSlab(level, pos) && isLoweredOnSlabBlock(level.getBlockState(pos.above()))) {
             attached = level.getBlockState(pos.above());
-            if (!aimsAtAttachedBlock(level, pos, player, pos.above(), true)) {
-                return;
-            }
+            aboveHalf = true;
         } else if (SlabSupport.isTopSlab(level, pos) && SlabSupport.isRaisedUnderTopSlabBelow(level, pos)) {
             attached = level.getBlockState(pos.below());
-            if (!aimsAtAttachedBlock(level, pos, player, pos.below(), false)) {
-                return;
-            }
+            aboveHalf = false;
+        } else if (SlabSupport.hasLoweredBlockAbove(level, pos)) {
+            attached = level.getBlockState(pos.above());
+            aboveHalf = true;
+        } else if (SlabSupport.hasRaisedBlockBelow(level, pos)) {
+            attached = level.getBlockState(pos.below());
+            aboveHalf = false;
         } else {
             return;
         }
 
+        BlockPos attachedPos = aboveHalf ? pos.above() : pos.below();
+        if (!aimsAtAttachedBlock(level, pos, player, attachedPos, aboveHalf)) {
+            return;
+        }
         cir.setReturnValue(new ItemStack(attached.getBlock()));
     }
 

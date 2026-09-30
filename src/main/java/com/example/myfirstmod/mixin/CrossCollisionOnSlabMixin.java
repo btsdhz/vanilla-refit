@@ -6,6 +6,7 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.CrossCollisionBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -26,7 +27,15 @@ public abstract class CrossCollisionOnSlabMixin {
     @Inject(method = "getShape", at = @At("RETURN"), cancellable = true, remap = false)
     private void btsdhz_original$getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context,
                                           CallbackInfoReturnable<VoxelShape> cir) {
-        VoxelShape shifted = shiftForSlab(state, cir.getReturnValue());
+        VoxelShape base = cir.getReturnValue();
+        VoxelShape shifted = shiftForSlab(state, base);
+        // 上方/下方还有同样位移了半格的方块时，它有一部分伸进本格，并入本格的拾取形状（舒适框）。
+        // 碰撞形状（getCollisionShape）保持不变，只有准星/拾取用得到这个形状。
+        VoxelShape stacked = SlabSupport.stackedNeighbourShape(level, pos, context);
+        if (stacked != null) {
+            cir.setReturnValue(Shapes.or(shifted != null ? shifted : base, stacked));
+            return;
+        }
         if (shifted != null) {
             cir.setReturnValue(shifted);
         }
