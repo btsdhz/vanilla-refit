@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.IronBarsBlock;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.properties.Half;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.level.block.state.properties.StairsShape;
 import net.neoforged.neoforge.client.model.generators.BlockStateProvider;
@@ -23,6 +24,7 @@ import net.neoforged.neoforge.client.model.generators.ModelFile;
 import net.neoforged.neoforge.client.model.generators.MultiPartBlockStateBuilder;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import com.example.myfirstmod.util.StairConnection;
+import java.util.List;
 import java.util.Set;
 
 public class ModBlockStateProvider extends BlockStateProvider {
@@ -57,6 +59,15 @@ public class ModBlockStateProvider extends BlockStateProvider {
             "sandstone_stairs",
             "red_sandstone_stairs"
     );
+
+    /**
+     * 玻璃板的八个方向属性：原版的东西南北 + 本模组的四个角。
+     * 任意一个为 true 时就不渲染默认那根“棍”（立柱与柱面）。
+     */
+    private static final List<Property<Boolean>> PANE_DIRECTIONS = List.of(
+            CrossCollisionBlock.NORTH, CrossCollisionBlock.EAST, CrossCollisionBlock.SOUTH, CrossCollisionBlock.WEST,
+            ModBlockStateProperties.PANE_NORTH_EAST, ModBlockStateProperties.PANE_SOUTH_EAST,
+            ModBlockStateProperties.PANE_NORTH_WEST, ModBlockStateProperties.PANE_SOUTH_WEST);
 
     public ModBlockStateProvider(PackOutput output, ExistingFileHelper existingFileHelper) {
         super(output, "btsdhz_original", existingFileHelper);
@@ -147,6 +158,10 @@ public class ModBlockStateProvider extends BlockStateProvider {
      * 贴图沿用原版玻璃板的用法（见原版 glass_pane_post / glass_pane_side 模型）：
      * 厚度方向的那 2 像素薄面用 glass_pane_top（#edge，本身就是 2 像素宽的玻璃断面），
      * 大面用玻璃方块贴图（#pane）。面片的大面是上/下面，四个侧边是厚度方向的薄面。
+     *
+     * 另外，八个方向属性（原版东西南北 + 本模组四个角）里只要有一个为 true，
+     * 就不渲染默认的那根“棍”（中间立柱 glass_pane_post 与四个未连接方向的柱面 noside）：
+     * 棍代表的是“什么都没连”的原版外观，一旦出现连接或角上面片就交给对应部分去画。
      */
     private void generatePaneBlockStates() {
         for (Block block : BuiltInRegistries.BLOCK) {
@@ -173,15 +188,17 @@ public class ModBlockStateProvider extends BlockStateProvider {
 
             MultiPartBlockStateBuilder builder = getMultipartBuilder(block);
             // ===== 原版部分 =====
-            builder.part().modelFile(post).addModel();
+            // 默认的“棍”：中间立柱 + 四个未连接方向的柱面，只在八个方向属性全为 false 时渲染
+            noStick(builder.part().modelFile(post).addModel());
+            noStick(builder.part().modelFile(noSide).addModel());
+            noStick(builder.part().modelFile(noSideAlt).addModel());
+            noStick(builder.part().modelFile(noSideAlt).rotationY(90).addModel());
+            noStick(builder.part().modelFile(noSide).rotationY(270).addModel());
+            // 有连接的方向：各自的横杆
             builder.part().modelFile(side).addModel().condition(CrossCollisionBlock.NORTH, true);
             builder.part().modelFile(side).rotationY(90).addModel().condition(CrossCollisionBlock.EAST, true);
             builder.part().modelFile(sideAlt).addModel().condition(CrossCollisionBlock.SOUTH, true);
             builder.part().modelFile(sideAlt).rotationY(90).addModel().condition(CrossCollisionBlock.WEST, true);
-            builder.part().modelFile(noSide).addModel().condition(CrossCollisionBlock.NORTH, false);
-            builder.part().modelFile(noSideAlt).addModel().condition(CrossCollisionBlock.EAST, false);
-            builder.part().modelFile(noSideAlt).rotationY(90).addModel().condition(CrossCollisionBlock.SOUTH, false);
-            builder.part().modelFile(noSide).rotationY(270).addModel().condition(CrossCollisionBlock.WEST, false);
             // ===== 本模组新增：四个角的水平面片 =====
             builder.part().modelFile(corner).addModel()
                     .condition(ModBlockStateProperties.PANE_NORTH_EAST, true);
@@ -196,6 +213,13 @@ public class ModBlockStateProvider extends BlockStateProvider {
 
     private ModelFile paneModel(String path) {
         return new ModelFile.UncheckedModelFile(mcLoc("block/" + path));
+    }
+
+    /** 默认那根“棍”的判定：八个方向属性必须全为 false。 */
+    private static void noStick(MultiPartBlockStateBuilder.PartBuilder part) {
+        for (Property<Boolean> property : PANE_DIRECTIONS) {
+            part.condition(property, false);
+        }
     }
 
     private boolean isHandAuthStair(Block stair) {
