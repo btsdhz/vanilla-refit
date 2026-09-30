@@ -5,7 +5,6 @@ import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.SlabSupport;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.RedstoneTorchBlock;
 import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -37,16 +36,19 @@ public abstract class BlockOnSlabStateMixin {
     // 放置时，根据下方方块是否为下台阶，设置 ON_SLAB
     @Inject(method = "getStateForPlacement", at = @At("RETURN"), cancellable = true, remap = false)
     private void btsdhz_original$torchOnPlacement(BlockPlaceContext context, CallbackInfoReturnable<BlockState> cir) {
-        if (!(((Object)this instanceof TorchBlock && !((Object)this instanceof WallTorchBlock))
-                || (Object)this instanceof RedstoneTorchBlock)) {
+        // 只有竖着放的火把跟着支撑面下移；墙火把（含墙红石火把）贴的是侧面，不参与
+        if (!SlabSupport.isStandingTorch((Block) (Object) this)) {
             return;
         }
         BlockState state = cir.getReturnValue();
         if (state == null) {
             return;
         }
+        // 下方是普通下半台阶，或下方是被本模组整体下移了半格的方块（下台阶上的栅栏/墙）时，
+        // 火把都要跟着下移半格，否则会悬空在支撑物的上表面上。
         boolean onSlab = BtsdhzConfig.TORCH_LANTERN_ON_SLAB.get()
-                && SlabSupport.isBottomSlab(context.getLevel(), context.getClickedPos().below());
+                && (SlabSupport.isBottomSlab(context.getLevel(), context.getClickedPos().below())
+                    || SlabSupport.isLoweredBlock(context.getLevel(), context.getClickedPos().below()));
         cir.setReturnValue(state.setValue(ModBlockStateProperties.ON_SLAB, onSlab));
     }
 }

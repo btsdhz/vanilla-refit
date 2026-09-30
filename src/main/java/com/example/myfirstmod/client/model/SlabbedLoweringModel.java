@@ -31,15 +31,41 @@ public class SlabbedLoweringModel extends BakedModelWrapper<BakedModel> {
         super(originalModel);
     }
 
+    /**
+     * 整体下移半格后，原本贴在方块上边界、带 {@code cullface: up} 的那组面（栅栏/墙立柱的顶面等）
+     * 已经降到半格高度，不再与上方方块紧贴，却被渲染器按“上方有方块”剔除了，于是出现缺面。
+     * 这里把这一组面并到“不参与剔除”的那组里（渲染器每帧都会画），保证位移后仍然可见。
+     *
+     * 下移模型的下组面（立柱底面，落在下台阶上表面）仍保留剔除，避免和台阶上表面重合。
+     */
     @Override
     public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource random) {
-        return transform(super.getQuads(state, side, random));
+        if (side == Direction.UP) {
+            return List.of();
+        }
+        return transform(withUpGroup(super.getQuads(state, side, random), super.getQuads(state, Direction.UP, random), side));
     }
 
     @Override
     public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource random,
                                     ModelData data, @Nullable RenderType renderType) {
-        return transform(originalModel.getQuads(state, side, random, data, renderType));
+        if (side == Direction.UP) {
+            return List.of();
+        }
+        return transform(withUpGroup(
+                originalModel.getQuads(state, side, random, data, renderType),
+                originalModel.getQuads(state, Direction.UP, random, data, renderType),
+                side));
+    }
+
+    private static List<BakedQuad> withUpGroup(List<BakedQuad> base, List<BakedQuad> upGroup, @Nullable Direction side) {
+        if (side != null || upGroup.isEmpty()) {
+            return base;
+        }
+        List<BakedQuad> merged = new ArrayList<>(base.size() + upGroup.size());
+        merged.addAll(base);
+        merged.addAll(upGroup);
+        return merged;
     }
 
     private List<BakedQuad> transform(List<BakedQuad> quads) {

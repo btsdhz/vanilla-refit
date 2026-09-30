@@ -5,8 +5,10 @@ import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.ModTags;
 import com.example.myfirstmod.util.SlabSupport;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.BaseTorchBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -32,16 +34,37 @@ public abstract class TorchOnSlabMixin {
     // 并与下面半砖并入的“舒适框”重叠（不同方块各自判定，互不冲突）
     private static final VoxelShape SHAPE_ON_SLAB = Block.box(6.0, -8.0, 6.0, 10.0, 2.0, 10.0);
 
-    // 火把放在普通水平下半台阶上时，认定为有效支撑，允许放置
+    // 火把放在普通水平下半台阶上、或放在被下移半格的方块（下台阶上的栅栏/墙）上时，
+    // 认定为有效支撑，允许放置
     @Inject(method = "canSurvive", at = @At("HEAD"), cancellable = true, remap = false)
     private void btsdhz_original$canSurvive(BlockState state, LevelReader level, BlockPos pos,
                                             CallbackInfoReturnable<Boolean> cir) {
         if (state.is(ModTags.ON_SLAB_TORCH)
                 && BtsdhzConfig.TORCH_LANTERN_ON_SLAB.get()
-                && SlabSupport.isBottomSlab(level, pos.below())
+                && (SlabSupport.isBottomSlab(level, pos.below())
+                    || SlabSupport.isLoweredBlock(level, pos.below()))
                 && !SlabSupport.isLavaSlab(level, pos.below())) {
             cir.setReturnValue(true);
             cir.cancel();
+        }
+    }
+
+    // 支撑面（正下方）变化时重新同步 ON_SLAB：支撑物变高/变矮后火把跟着回到对应形态，
+    // 不会出现火把沉进栅栏里或悬空的情况。只认正下方，避免邻格无关改动影响已有建筑。
+    @Inject(method = "updateShape", at = @At("RETURN"), cancellable = true, remap = false)
+    private void btsdhz_original$updateShape(BlockState state, Direction facing, BlockState facingState,
+                                             LevelAccessor level, BlockPos currentPos, BlockPos facingPos,
+                                             CallbackInfoReturnable<BlockState> cir) {
+        BlockState result = cir.getReturnValue();
+        if (facing != Direction.DOWN || result == null || result.isAir()
+                || !result.hasProperty(ModBlockStateProperties.ON_SLAB)) {
+            return;
+        }
+        boolean onSlab = BtsdhzConfig.TORCH_LANTERN_ON_SLAB.get()
+                && (SlabSupport.isBottomSlab(level, currentPos.below())
+                    || SlabSupport.isLoweredBlock(level, currentPos.below()));
+        if (result.getValue(ModBlockStateProperties.ON_SLAB) != onSlab) {
+            cir.setReturnValue(result.setValue(ModBlockStateProperties.ON_SLAB, onSlab));
         }
     }
 

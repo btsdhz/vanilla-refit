@@ -5,8 +5,10 @@ import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.ModTags;
 import com.example.myfirstmod.util.SlabSupport;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.LanternBlock;
@@ -49,20 +51,25 @@ public abstract class LanternOnSlabMixin {
         builder.add(ModBlockStateProperties.UNDER_TOP_SLAB);
     }
 
-    // 放置时：非悬挂灯笼放在下台阶上置 ON_SLAB=true；悬挂灯笼放在上台阶下置 UNDER_TOP_SLAB=true
+    // 放置时：非悬挂灯笼放在下台阶上置 ON_SLAB=true；悬挂灯笼放在上台阶下置 UNDER_TOP_SLAB=true。
+    // 支撑面也可能不是台阶本身，而是被本模组位移了半格的栅栏/墙（下台阶上的栅栏/墙、上台阶下的栅栏/墙），
+    // 这种情况同样要跟着位移，否则灯笼会悬空半格。
     @Inject(method = "getStateForPlacement", at = @At("RETURN"), cancellable = true, remap = false)
     private void btsdhz_original$getStateForPlacement(BlockPlaceContext context, CallbackInfoReturnable<BlockState> cir) {
         BlockState state = cir.getReturnValue();
         if (state == null) {
             return;
         }
+        BlockPos pos = context.getClickedPos();
         boolean onSlab = !state.getValue(LanternBlock.HANGING)
                 && BtsdhzConfig.TORCH_LANTERN_ON_SLAB.get()
-                && SlabSupport.isBottomSlab(context.getLevel(), context.getClickedPos().below());
+                && (SlabSupport.isBottomSlab(context.getLevel(), pos.below())
+                    || SlabSupport.isLoweredBlock(context.getLevel(), pos.below()));
         boolean underTopSlab = state.getValue(LanternBlock.HANGING)
                 && BtsdhzConfig.LANTERN_UNDER_TOP_SLAB.get()
-                && SlabSupport.isTopSlab(context.getLevel(), context.getClickedPos().above())
-                && !SlabSupport.isLavaSlab(context.getLevel(), context.getClickedPos().above());
+                && (SlabSupport.isTopSlab(context.getLevel(), pos.above())
+                    || SlabSupport.isRaisedBlock(context.getLevel(), pos.above()))
+                && !SlabSupport.isLavaSlab(context.getLevel(), pos.above());
         cir.setReturnValue(state
                 .setValue(ModBlockStateProperties.ON_SLAB, onSlab)
                 .setValue(ModBlockStateProperties.UNDER_TOP_SLAB, underTopSlab));
@@ -75,7 +82,8 @@ public abstract class LanternOnSlabMixin {
         if (state.is(ModTags.ON_SLAB_LANTERN)
                 && !state.getValue(LanternBlock.HANGING)
                 && BtsdhzConfig.TORCH_LANTERN_ON_SLAB.get()
-                && SlabSupport.isBottomSlab(level, pos.below())
+                && (SlabSupport.isBottomSlab(level, pos.below())
+                    || SlabSupport.isLoweredBlock(level, pos.below()))
                 && !SlabSupport.isLavaSlab(level, pos.below())) {
             cir.setReturnValue(true);
             cir.cancel();
@@ -85,7 +93,8 @@ public abstract class LanternOnSlabMixin {
         if (state.is(ModTags.ON_SLAB_LANTERN)
                 && state.getValue(LanternBlock.HANGING)
                 && BtsdhzConfig.LANTERN_UNDER_TOP_SLAB.get()
-                && SlabSupport.isTopSlab(level, pos.above())
+                && (SlabSupport.isTopSlab(level, pos.above())
+                    || SlabSupport.isRaisedBlock(level, pos.above()))
                 && !SlabSupport.isLavaSlab(level, pos.above())) {
             cir.setReturnValue(true);
             cir.cancel();
@@ -102,6 +111,40 @@ public abstract class LanternOnSlabMixin {
         } else if (state.hasProperty(ModBlockStateProperties.ON_SLAB)
                 && state.getValue(ModBlockStateProperties.ON_SLAB)) {
             cir.setReturnValue(SHAPE_ON_SLAB);
+        }
+    }
+
+    // 支撑面变化时重新同步两个位移标记：非悬挂灯笼看正下方、悬挂灯笼看正上方，
+    // 支撑物（台阶或下移/上移了半格的栅栏、墙）变高变矮后灯笼跟着贴合，不会悬空或陷进去。
+    // 只认直接支撑方向，避免邻格无关改动影响已有建筑。
+    @Inject(method = "updateShape", at = @At("RETURN"), cancellable = true, remap = false)
+    private void btsdhz_original$updateShape(BlockState state, Direction facing, BlockState facingState,
+                                             LevelAccessor level, BlockPos currentPos, BlockPos facingPos,
+                                             CallbackInfoReturnable<BlockState> cir) {
+        BlockState result = cir.getReturnValue();
+        if (result == null || result.isAir()
+                || !result.hasProperty(ModBlockStateProperties.ON_SLAB)
+                || !result.hasProperty(ModBlockStateProperties.UNDER_TOP_SLAB)) {
+            return;
+        }
+        boolean hanging = result.getValue(LanternBlock.HANGING);
+        if (hanging ? facing != Direction.UP : facing != Direction.DOWN) {
+            return;
+        }
+        boolean onSlab = !hanging
+                && BtsdhzConfig.TORCH_LANTERN_ON_SLAB.get()
+                && (SlabSupport.isBottomSlab(level, currentPos.below())
+                    || SlabSupport.isLoweredBlock(level, currentPos.below()));
+        boolean underTopSlab = hanging
+                && BtsdhzConfig.LANTERN_UNDER_TOP_SLAB.get()
+                && (SlabSupport.isTopSlab(level, currentPos.above())
+                    || SlabSupport.isRaisedBlock(level, currentPos.above()))
+                && !SlabSupport.isLavaSlab(level, currentPos.above());
+        if (result.getValue(ModBlockStateProperties.ON_SLAB) != onSlab
+                || result.getValue(ModBlockStateProperties.UNDER_TOP_SLAB) != underTopSlab) {
+            cir.setReturnValue(result
+                    .setValue(ModBlockStateProperties.ON_SLAB, onSlab)
+                    .setValue(ModBlockStateProperties.UNDER_TOP_SLAB, underTopSlab));
         }
     }
 }

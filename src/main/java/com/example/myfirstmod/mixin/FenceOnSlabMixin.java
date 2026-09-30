@@ -6,12 +6,14 @@ import com.example.myfirstmod.util.FenceSlabConnection;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -81,6 +83,28 @@ public abstract class FenceOnSlabMixin {
                     .setValue(ModBlockStateProperties.UNDER_TOP_SLAB, underTopSlab);
         }
         cir.setReturnValue(FenceSlabConnection.withSlabConnections(withSlab, level, currentPos));
+    }
+
+    /**
+     * 遮挡形状（face occlusion shape）跟着位移。
+     *
+     * <p>栅栏的遮挡形状来自构造期算好的固定表 {@code occlusionByIndex}，不随本模组的位移变化；
+     * 而墙的遮挡形状取自被位移过的 {@code getShape}，所以“墙上面再放方块”不会缺面。
+     * 这里让栅栏的遮挡形状一起位移半格，行为与墙一致：上面再放方块时，栅栏自己的顶面
+     * （以及上方方块朝向栅栏的那一面）不会被错误地当成“紧贴”而剔除，不再出现缺面。
+     */
+    @Inject(method = "getOcclusionShape", at = @At("RETURN"), cancellable = true, remap = false)
+    private void btsdhz_original$getOcclusionShape(BlockState state, BlockGetter level, BlockPos pos,
+                                                   CallbackInfoReturnable<VoxelShape> cir) {
+        VoxelShape shape = cir.getReturnValue();
+        if (shape == null || shape.isEmpty()) {
+            return;
+        }
+        if (SlabSupport.isOnSlab(state)) {
+            cir.setReturnValue(SlabSupport.shiftDownHalf(shape));
+        } else if (SlabSupport.isUnderTopSlab(state)) {
+            cir.setReturnValue(SlabSupport.shiftUpHalf(shape));
+        }
     }
 
 }

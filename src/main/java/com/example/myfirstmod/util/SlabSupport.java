@@ -4,7 +4,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.RedstoneTorchBlock;
+import net.minecraft.world.level.block.RedstoneWallTorchBlock;
 import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.TorchBlock;
+import net.minecraft.world.level.block.WallTorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -71,6 +75,31 @@ public final class SlabSupport {
     public static boolean isUnderTopSlab(BlockState state) {
         return state.hasProperty(ModBlockStateProperties.UNDER_TOP_SLAB)
                 && state.getValue(ModBlockStateProperties.UNDER_TOP_SLAB);
+    }
+
+    /**
+     * @return pos 处的方块是否被本模组整体下移了半格（下台阶上的栅栏/墙等）。
+     * 这类方块的“上表面”比它所在格子低半格，放在它上面的火把/灯笼也要跟着下移半格才不悬空。
+     */
+    public static boolean isLoweredBlock(BlockGetter level, BlockPos pos) {
+        return isOnSlab(level.getBlockState(pos));
+    }
+
+    /**
+     * @return pos 处的方块是否被本模组整体上移了半格（上台阶下的栅栏/墙等）。
+     * 这类方块的“下表面”比它所在格子高半格，挂在它下面的灯笼也要跟着上移半格才不悬空。
+     */
+    public static boolean isRaisedBlock(BlockGetter level, BlockPos pos) {
+        return isUnderTopSlab(level.getBlockState(pos));
+    }
+
+    /**
+     * @return 该方块是否是“竖着放”的火把类（普通火把、灵魂火把、红石火把）。
+     * 墙火把（含墙红石火把）贴在侧面，不跟着下方支撑面下移，所以不算。
+     */
+    public static boolean isStandingTorch(Block block) {
+        return (block instanceof TorchBlock && !(block instanceof WallTorchBlock))
+                || (block instanceof RedstoneTorchBlock && !(block instanceof RedstoneWallTorchBlock));
     }
 
     /**
