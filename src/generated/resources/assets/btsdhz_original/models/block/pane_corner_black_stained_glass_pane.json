@@ -1,6 +1,7 @@
 {
   "parent": "btsdhz_original:block/pane_corner",
   "textures": {
+    "edge": "minecraft:block/black_stained_glass_pane_top",
     "pane": "minecraft:block/black_stained_glass"
   }
 }

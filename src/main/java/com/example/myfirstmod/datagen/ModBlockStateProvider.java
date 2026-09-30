@@ -143,6 +143,10 @@ public class ModBlockStateProvider extends BlockStateProvider {
      *
      * 铁栏杆虽然也是 IronBarsBlock，但原版结构不同且没有 *_pane_top 之类的贴图，不参与本功能；
      * 其它模组的玻璃板贴图命名不一定遵循原版规则，也先不生成（判定见 util/PaneCornerSupport）。
+     *
+     * 贴图沿用原版玻璃板的用法（见原版 glass_pane_post / glass_pane_side 模型）：
+     * 厚度方向的那 2 像素薄面用 glass_pane_top（#edge，本身就是 2 像素宽的玻璃断面），
+     * 大面用玻璃方块贴图（#pane）。面片的大面是上/下面，四个侧边是厚度方向的薄面。
      */
     private void generatePaneBlockStates() {
         for (Block block : BuiltInRegistries.BLOCK) {
@@ -158,7 +162,8 @@ public class ModBlockStateProvider extends BlockStateProvider {
             String textureBase = name.substring(0, name.length() - "_pane".length());
             ModelFile corner = models().getBuilder("pane_corner_" + name)
                     .parent(new ModelFile.UncheckedModelFile(modLoc("block/pane_corner")))
-                    .texture("pane", mcLoc("block/" + textureBase));
+                    .texture("pane", mcLoc("block/" + textureBase))
+                    .texture("edge", mcLoc("block/" + textureBase + "_pane_top"));
 
             ModelFile post = paneModel(name + "_post");
             ModelFile side = paneModel(name + "_side");
