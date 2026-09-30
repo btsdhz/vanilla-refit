@@ -37,6 +37,8 @@ When the user writes in Chinese, reply in Chinese and keep any internal reasonin
 
 Use NeoForge's GameTest framework; there is no JUnit suite. The client/server/data run configs already scope tests to `btsdhz_original`. Verify with `gradlew runGameTestServer`, or manually place blocks via `gradlew runClient`. No coverage threshold is enforced.
 
+Do not package or hand over jars (`build/libs/*.jar`) unless the user explicitly asks — by default "done" means the code compiles and `gradlew runData` / `gradlew build` pass; the user verifies behaviour in-game themselves. Also avoid starting a second `runClient` while the user's client is open.
+
 ## Commit & Pull Request Guidelines
 
 The repository is initialized as a Git repo. All subsequent code changes must be committed with standardized Conventional Commit messages — this is a hard requirement at every key milestone, not a suggestion.
