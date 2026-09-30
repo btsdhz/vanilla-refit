@@ -9,6 +9,9 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CrossCollisionBlock;
+import net.minecraft.world.level.block.IronBarsBlock;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.properties.Half;
@@ -17,6 +20,7 @@ import net.minecraft.world.level.block.state.properties.StairsShape;
 import net.neoforged.neoforge.client.model.generators.BlockStateProvider;
 import net.neoforged.neoforge.client.model.generators.ConfiguredModel;
 import net.neoforged.neoforge.client.model.generators.ModelFile;
+import net.neoforged.neoforge.client.model.generators.MultiPartBlockStateBuilder;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import com.example.myfirstmod.util.StairConnection;
 import java.util.Set;
@@ -62,6 +66,9 @@ public class ModBlockStateProvider extends BlockStateProvider {
     protected void registerStatesAndModels() {
         // 混合半砖：一格放两块不同材质半砖。模型是占位（客户端运行时合并两块半砖几何）
         generateMixedSlabBlockStates();
+
+        // 玻璃板：原版 multipart 之外追加四个“角上水平面片”属性对应的部分
+        generatePaneBlockStates();
 
         // 台阶（剔除手工建模的多纹理材质）
         BuiltInRegistries.BLOCK.stream()
@@ -123,6 +130,67 @@ public class ModBlockStateProvider extends BlockStateProvider {
 
     private boolean isHandAuthSlab(Block slab) {
         return HAND_AUTH_SLABS.contains(BuiltInRegistries.BLOCK.getKey(slab).getPath());
+    }
+
+    /**
+     * 玻璃板（原版命名空间的 *_pane）四角水平面片的 blockstate 与模型。
+     *
+     * 原版玻璃板的 blockstate 是 multipart（立柱 + 四个方向的 side/noside），
+     * 这里先按原版规则原样重建这些部分，保证外观不变，再追加四个方向属性
+     * btsdhz_ne / btsdhz_se / btsdhz_nw / btsdhz_sw 对应的水平面片：
+     * 四个方向的面片是同一块 1/4 面的几何，用 y 轴旋转分别摆到东南/西南/西北三个角
+     * （基准模型是东北角，y=90→东南，y=180→西南，y=270→西北）。
+     *
+     * 铁栏杆虽然也是 IronBarsBlock，但原版结构不同且没有 *_pane_top 之类的贴图，不参与本功能；
+     * 其它模组的玻璃板贴图命名不一定遵循原版规则，也先不生成（判定见 util/PaneCornerSupport）。
+     */
+    private void generatePaneBlockStates() {
+        for (Block block : BuiltInRegistries.BLOCK) {
+            if (!(block instanceof IronBarsBlock) || block == Blocks.IRON_BARS) {
+                continue;
+            }
+            ResourceLocation key = BuiltInRegistries.BLOCK.getKey(block);
+            String name = key.getPath();
+            if (!key.getNamespace().equals("minecraft") || !name.endsWith("_pane")) {
+                continue;
+            }
+            // 原版命名规则：玻璃板贴图 = 去掉 _pane 后缀的玻璃方块贴图
+            String textureBase = name.substring(0, name.length() - "_pane".length());
+            ModelFile corner = models().getBuilder("pane_corner_" + name)
+                    .parent(new ModelFile.UncheckedModelFile(modLoc("block/pane_corner")))
+                    .texture("pane", mcLoc("block/" + textureBase));
+
+            ModelFile post = paneModel(name + "_post");
+            ModelFile side = paneModel(name + "_side");
+            ModelFile sideAlt = paneModel(name + "_side_alt");
+            ModelFile noSide = paneModel(name + "_noside");
+            ModelFile noSideAlt = paneModel(name + "_noside_alt");
+
+            MultiPartBlockStateBuilder builder = getMultipartBuilder(block);
+            // ===== 原版部分 =====
+            builder.part().modelFile(post).addModel();
+            builder.part().modelFile(side).addModel().condition(CrossCollisionBlock.NORTH, true);
+            builder.part().modelFile(side).rotationY(90).addModel().condition(CrossCollisionBlock.EAST, true);
+            builder.part().modelFile(sideAlt).addModel().condition(CrossCollisionBlock.SOUTH, true);
+            builder.part().modelFile(sideAlt).rotationY(90).addModel().condition(CrossCollisionBlock.WEST, true);
+            builder.part().modelFile(noSide).addModel().condition(CrossCollisionBlock.NORTH, false);
+            builder.part().modelFile(noSideAlt).addModel().condition(CrossCollisionBlock.EAST, false);
+            builder.part().modelFile(noSideAlt).rotationY(90).addModel().condition(CrossCollisionBlock.SOUTH, false);
+            builder.part().modelFile(noSide).rotationY(270).addModel().condition(CrossCollisionBlock.WEST, false);
+            // ===== 本模组新增：四个角的水平面片 =====
+            builder.part().modelFile(corner).addModel()
+                    .condition(ModBlockStateProperties.PANE_NORTH_EAST, true);
+            builder.part().modelFile(corner).rotationY(90).addModel()
+                    .condition(ModBlockStateProperties.PANE_SOUTH_EAST, true);
+            builder.part().modelFile(corner).rotationY(180).addModel()
+                    .condition(ModBlockStateProperties.PANE_SOUTH_WEST, true);
+            builder.part().modelFile(corner).rotationY(270).addModel()
+                    .condition(ModBlockStateProperties.PANE_NORTH_WEST, true);
+        }
+    }
+
+    private ModelFile paneModel(String path) {
+        return new ModelFile.UncheckedModelFile(mcLoc("block/" + path));
     }
 
     private boolean isHandAuthStair(Block stair) {

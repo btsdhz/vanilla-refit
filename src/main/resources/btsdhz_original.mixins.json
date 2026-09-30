@@ -9,6 +9,8 @@
     "BlockItemMixin",
     "BucketMixin",
     "StairBlockMixin",
+    "IronBarsBlockMixin",
+    "GlassPaneCornerMixin",
     "BlockOnSlabStateMixin",
     "TorchOnSlabMixin",
     "LanternOnSlabMixin",

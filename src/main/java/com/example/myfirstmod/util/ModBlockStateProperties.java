@@ -34,4 +34,19 @@ public class ModBlockStateProperties {
     // 缺失该属性不会被误判成“上移形态”。
     public static final Property<Boolean> UNDER_TOP_SLAB =
             new DefaultFalseBooleanProperty("btsdhz_under_top_slab");
+
+    // 玻璃板四角水平面片：为真时在玻璃板中间高度（8 像素）渲染一块 1/4 方块面大小的水平玻璃面，
+    // 位置靠向该属性表示的方向（东北/东南/西北/西南）。
+    // 与其它“附加形态”属性一样用默认 false 的属性：缺失该属性时保持原版玻璃板外观。
+    public static final Property<Boolean> PANE_NORTH_EAST =
+            new DefaultFalseBooleanProperty("btsdhz_ne");
+
+    public static final Property<Boolean> PANE_SOUTH_EAST =
+            new DefaultFalseBooleanProperty("btsdhz_se");
+
+    public static final Property<Boolean> PANE_NORTH_WEST =
+            new DefaultFalseBooleanProperty("btsdhz_nw");
+
+    public static final Property<Boolean> PANE_SOUTH_WEST =
+            new DefaultFalseBooleanProperty("btsdhz_sw");
 }
