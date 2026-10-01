@@ -15,7 +15,8 @@ import net.minecraft.world.level.block.state.BlockState;
  *  1. 周围什么都没有 → 12 个属性全为 false（原版那根棍）。这是所有规则的起点，不需要特判；
  *  2. 某个水平方向有方块（判定与原版 IronBarsBlock 完全一致）→ 该方向的上半与下半都为真；
  *  3. 下方有方块 → 东南西北四个方向的下半部分全为真（下半就是原版的东西南北属性）；
- *  4. 上方有方块 → 东南西北四个方向的上半部分全为真；
+ *     目前暂时停用，代码在 update() 里注释保留，方便随时恢复；
+ *  4. 上方有方块 → 东南西北四个方向的上半部分全为真；同样暂时停用；
  *  5. 上方和下方都有方块 → 四个角（东南/西南/东北/西北）一律为假；
  *  6. 相邻两个方向都是玻璃板 → 对应那个角为真
  *     （东+南=东南、南+西=西南、北+东=东北、北+西=西北），优先级最低。
@@ -56,15 +57,24 @@ public final class PaneConnection {
             northWest = false;
         }
 
-        // ===== 规则 3 / 4：下方有方块 → 下半全真；上方有方块 → 上半全真 =====
-        boolean northLower = hasBelow;
-        boolean eastLower = hasBelow;
-        boolean southLower = hasBelow;
-        boolean westLower = hasBelow;
-        boolean northUpper = hasAbove;
-        boolean eastUpper = hasAbove;
-        boolean southUpper = hasAbove;
-        boolean westUpper = hasAbove;
+        // ===== 规则 3 / 4：暂时注释掉，先只保留规则 2、5、6 =====
+        // 规则 4：上方有方块 → 四个上半全真；规则 3：下方有方块 → 四个下半全真
+        // boolean northLower = hasBelow;
+        // boolean eastLower = hasBelow;
+        // boolean southLower = hasBelow;
+        // boolean westLower = hasBelow;
+        // boolean northUpper = hasAbove;
+        // boolean eastUpper = hasAbove;
+        // boolean southUpper = hasAbove;
+        // boolean westUpper = hasAbove;
+        boolean northLower = false;
+        boolean eastLower = false;
+        boolean southLower = false;
+        boolean westLower = false;
+        boolean northUpper = false;
+        boolean eastUpper = false;
+        boolean southUpper = false;
+        boolean westUpper = false;
 
         // ===== 规则 2（优先级最高）：该方向有方块（判定与原版一致）→ 该方向上下两半都为真 =====
         if (connectsTo(pane, level, pos, Direction.NORTH)) {
