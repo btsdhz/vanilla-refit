@@ -1,8 +1,12 @@
 package com.example.myfirstmod.mixin;
 
 import com.example.myfirstmod.util.ModBlockStateProperties;
+import com.example.myfirstmod.util.PaneConnection;
 import com.example.myfirstmod.util.PaneCornerSupport;
 import net.minecraft.core.Direction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.IronBarsBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -48,5 +52,29 @@ public abstract class IronBarsBlockMixin {
         if (!side.getAxis().isHorizontal() && PaneCornerSupport.hasCorner(state)) {
             cir.setReturnValue(false);
         }
+    }
+
+    /**
+     * 放置时按周围环境算好 12 个部件属性（覆盖原版那套只设置东西南北的逻辑）。
+     * 周围什么都没有时全是 false，也就是原版那根棍。
+     */
+    @Inject(method = "getStateForPlacement", at = @At("RETURN"), cancellable = true, remap = false)
+    private void btsdhz_original$getStateForPlacement(BlockPlaceContext context,
+                                                      CallbackInfoReturnable<BlockState> cir) {
+        BlockState state = cir.getReturnValue();
+        if (state != null) {
+            cir.setReturnValue(PaneConnection.update(state, context.getLevel(), context.getClickedPos()));
+        }
+    }
+
+    /**
+     * 邻居变化时重算：旁放/拆掉方块、上下方出现或消失方块、旁边放拆玻璃板都会走到这里，
+     * 顺带把新放玻璃板对旁边玻璃板的角上面片影响也一并刷新。
+     */
+    @Inject(method = "updateShape", at = @At("RETURN"), cancellable = true, remap = false)
+    private void btsdhz_original$updateShape(BlockState state, Direction facing, BlockState facingState,
+                                             LevelAccessor level, BlockPos currentPos, BlockPos facingPos,
+                                             CallbackInfoReturnable<BlockState> cir) {
+        cir.setReturnValue(PaneConnection.update(cir.getReturnValue(), level, currentPos));
     }
 }
