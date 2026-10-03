@@ -156,8 +156,9 @@ public class ModBlockStateProvider extends BlockStateProvider {
      * 每个部件的基准模型都是朝北（或东北角）的那一块，其余方向靠 y 轴旋转 90/180/270 摆放：
      * 上/下半模型按 北→东→南→西 旋转，角上面片按 东北→东南→西南→西北 旋转。
      *
-     * 铁栏杆虽然也是 IronBarsBlock，但原版结构不同且没有 *_pane_top 之类的贴图，不参与本功能；
-     * 其它模组的玻璃板贴图命名不一定遵循原版规则，也先不生成（判定见 util/PaneCornerSupport）。
+     * 铁栏杆和玻璃板同属 IronBarsBlock、柱与横杆尺寸一致，所以同样参与这套部件与规则，
+     * 只是默认那根“棍”用它自己的原版模型（iron_bars_post_ends + iron_bars_post）、
+     * 大面与断面都用自己的 iron_bars 贴图；其它模组的玻璃板贴图命名不一定遵循原版规则，先不生成。
      *
      * 贴图沿用原版玻璃板的用法（见原版 glass_pane_post / glass_pane_side 模型）：
      * 厚度方向的那 2 像素薄面用 glass_pane_top（#edge，本身就是 2 像素宽的玻璃断面），
@@ -169,43 +170,62 @@ public class ModBlockStateProvider extends BlockStateProvider {
      */
     private void generatePaneBlockStates() {
         for (Block block : BuiltInRegistries.BLOCK) {
-            if (!(block instanceof IronBarsBlock) || block == Blocks.IRON_BARS) {
+            if (!(block instanceof IronBarsBlock)) {
                 continue;
             }
             ResourceLocation key = BuiltInRegistries.BLOCK.getKey(block);
             String name = key.getPath();
-            if (!key.getNamespace().equals("minecraft") || !name.endsWith("_pane")) {
+            if (!key.getNamespace().equals("minecraft")) {
                 continue;
             }
-            // 原版命名规则：玻璃板贴图 = 去掉 _pane 后缀的玻璃方块贴图
-            String textureBase = name.substring(0, name.length() - "_pane".length());
+            boolean ironBars = block == Blocks.IRON_BARS;
+            if (!ironBars && !name.endsWith("_pane")) {
+                continue;
+            }
+            ResourceLocation paneTexture;
+            ResourceLocation edgeTexture;
+            if (ironBars) {
+                // 铁栏杆的大面与断面用的是同一张 iron_bars 贴图
+                paneTexture = mcLoc("block/iron_bars");
+                edgeTexture = paneTexture;
+            } else {
+                // 原版命名规则：玻璃板贴图 = 去掉 _pane 后缀的玻璃方块贴图，断面 = 那张玻璃的 _pane_top
+                String textureBase = name.substring(0, name.length() - "_pane".length());
+                paneTexture = mcLoc("block/" + textureBase);
+                edgeTexture = mcLoc("block/" + textureBase + "_pane_top");
+            }
             ModelFile corner = models().getBuilder("pane_corner_" + name)
                     .parent(new ModelFile.UncheckedModelFile(modLoc("block/pane_corner")))
-                    .texture("pane", mcLoc("block/" + textureBase))
-                    .texture("edge", mcLoc("block/" + textureBase + "_pane_top"));
-
-            ModelFile post = paneModel(name + "_post");
-            ModelFile noSide = paneModel(name + "_noside");
-            ModelFile noSideAlt = paneModel(name + "_noside_alt");
+                    .texture("pane", paneTexture)
+                    .texture("edge", edgeTexture);
 
             // 四个方向的上/下半各一份模型（基准都是朝北的那一块，其余方向靠 y 旋转）
             ModelFile sideLower = models().getBuilder("pane_side_lower_" + name)
                     .parent(new ModelFile.UncheckedModelFile(modLoc("block/pane_side_lower")))
-                    .texture("pane", mcLoc("block/" + textureBase))
-                    .texture("edge", mcLoc("block/" + textureBase + "_pane_top"));
+                    .texture("pane", paneTexture)
+                    .texture("edge", edgeTexture);
             ModelFile sideUpper = models().getBuilder("pane_side_upper_" + name)
                     .parent(new ModelFile.UncheckedModelFile(modLoc("block/pane_side_upper")))
-                    .texture("pane", mcLoc("block/" + textureBase))
-                    .texture("edge", mcLoc("block/" + textureBase + "_pane_top"));
+                    .texture("pane", paneTexture)
+                    .texture("edge", edgeTexture);
 
             MultiPartBlockStateBuilder builder = getMultipartBuilder(block);
             // ===== 默认的“棍” =====
-            // 中间立柱 + 四个未连接方向的柱面，只在 12 个部件属性全为 false 时渲染
-            noStick(builder.part().modelFile(post).addModel());
-            noStick(builder.part().modelFile(noSide).addModel());
-            noStick(builder.part().modelFile(noSideAlt).addModel());
-            noStick(builder.part().modelFile(noSideAlt).rotationY(90).addModel());
-            noStick(builder.part().modelFile(noSide).rotationY(270).addModel());
+            // 只在 12 个部件属性全为 false 时渲染：玻璃板是中间立柱 + 四个柱面，
+            // 铁栏杆用它自己的原版 post_ends + post，保持原版“一根铁栏杆”的外观
+            if (ironBars) {
+                noStick(builder.part().modelFile(paneModel("iron_bars_post_ends")).addModel());
+                noStick(builder.part().modelFile(paneModel("iron_bars_post")).addModel());
+            } else {
+                ModelFile post = paneModel(name + "_post");
+                ModelFile noSide = paneModel(name + "_noside");
+                ModelFile noSideAlt = paneModel(name + "_noside_alt");
+                noStick(builder.part().modelFile(post).addModel());
+                noStick(builder.part().modelFile(noSide).addModel());
+                noStick(builder.part().modelFile(noSideAlt).addModel());
+                noStick(builder.part().modelFile(noSideAlt).rotationY(90).addModel());
+                noStick(builder.part().modelFile(noSide).rotationY(270).addModel());
+            }
             // ===== 四个方向的上下两半 =====
             // 下半：原版属性（名字不变，含义改为下半）
             builder.part().modelFile(sideLower).addModel().condition(CrossCollisionBlock.NORTH, true);

@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CrossCollisionBlock;
 import net.minecraft.world.level.block.IronBarsBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -65,15 +64,15 @@ public final class PaneCornerSupport {
     }
 
     /**
-     * 该方块状态是不是“参与部件化”的玻璃板。
+     * 该方块状态是不是“参与部件化”的方块：原版命名空间的玻璃板、染色玻璃板与铁栏杆。
      *
-     * 与数据生成的条件保持一致：原版命名空间、且不是铁栏杆（铁栏杆虽然同为 IronBarsBlock，
-     * 但原版 blockstate 结构与贴图命名都不同，本功能不处理）。其它模组的玻璃板同样先不处理，
-     * 避免出现只有碰撞箱、没有模型的隐形碰撞。
+     * 铁栏杆和玻璃板同属 IronBarsBlock、柱与横杆的尺寸也完全一致，所以共用同一套 12 个部件、
+     * 形状与连接规则；区别只在“什么都没连”时用铁栏杆自己的原版外观（post_ends + post）与贴图。
+     * 其它模组的玻璃板贴图命名不一定遵循原版规则，先不处理（避免出现只有碰撞箱、没有模型的隐形碰撞）。
      */
     public static boolean isSupportedPane(BlockState state) {
         Block block = state.getBlock();
-        if (!(block instanceof IronBarsBlock) || block == Blocks.IRON_BARS) {
+        if (!(block instanceof IronBarsBlock)) {
             return false;
         }
         return BuiltInRegistries.BLOCK.getKey(block).getNamespace().equals("minecraft");
