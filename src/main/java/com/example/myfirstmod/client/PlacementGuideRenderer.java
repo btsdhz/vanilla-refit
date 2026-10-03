@@ -10,9 +10,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.StairBlock;
-import net.minecraft.world.level.block.SupportType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -35,25 +35,26 @@ import net.neoforged.neoforge.client.event.RenderHighlightEvent;
  *     <li>侧面：上下等分的那条中线；</li>
  * </ul>
  *
- * <p>只在“完整、紧贴、露在外面”的表面上画，避免线浮空：命中方块必须是整方块；背面
- * （准星指向的反方向）必须是空气或整方块；面四周的任一邻居若在该面上有实心形状则跳过。
+ * <p><b>只在完整、紧贴、露出的整方块表面画。</b>提示线的坐标是按“方块边界所在的平面”
+ * （0 或 1）算的，只有整方块的六个面才正好落在那里；台阶/楼梯这类非整方块的上表面在
+ * 方块内部，线会浮空，所以直接不画（不去花力气适配形状）。另外要求面正前方那一格没有实体，
+ * 保证这个面是完整露出来的、也确实能往上放方块。
  *
- * <p>只画提示线，不改方块本身的高亮（原版外框仍然照常绘制）。
+ * <p>颜色与线宽和原版高亮外框完全一致（顶点色 0,0,0,0.4，线宽 1）。只额外画线，
+ * 原版外框仍然照常绘制。
  */
 @EventBusSubscriber(modid = BtsdhzOriginal.MOD_ID, value = Dist.CLIENT)
 public final class PlacementGuideRenderer {
 
-    /** 与面之间留的极小偏移，避免和方块面/原版外框 z-fighting。 */
-    private static final float OFFSET = 0.005F;
-
     /**
-     * 提示线颜色。原版外框顶点色是 (0,0,0,0.4)，叠加原版高亮后看着是灰色；
-     * 这里用不透明的浅灰，免得和原版外框叠在一起发暗、显得比原版黑。
+     * 与原版外框完全一致的顶点色。
+     * 见 {@code LevelRenderer#renderHitOutline}：0,0,0,0.4。
+     * 原版看起来是灰色，是因为半透明黑与原版高亮混合的结果；直接抄同一个值才会一致。
      */
-    private static final float R = 0.55F;
-    private static final float G = 0.55F;
-    private static final float B = 0.55F;
-    private static final float A = 1.0F;
+    private static final float R = 0.0F;
+    private static final float G = 0.0F;
+    private static final float B = 0.0F;
+    private static final float A = 0.4F;
 
     /** 台阶：两条对角线（X 分割），单位 [0,1]。 */
     private static final float[][] SLAB_EDGES = {
@@ -99,25 +100,14 @@ public final class PlacementGuideRenderer {
             return;
         }
 
-        BlockState hitState = mc.level.getBlockState(pos);
-        if (!isFullCube(hitState)) {
+        // 1. 命中方块必须是整方块：只有这样它的六个面才和方块边界平面重合，线才不会浮空。
+        if (!isFullCube(mc.level, pos)) {
             return;
         }
-        // 背面必须是空气或整方块，保证线要么悬在两面之间、要么贴在整面上，不会浮空。
-        BlockState behind = mc.level.getBlockState(pos.relative(face.getOpposite()));
-        if (!behind.isAir() && !isFullCube(behind)) {
+        // 2. 面正前方那一格必须是空的（无实体碰撞），保证这个面完整露出、也放得下新方块。
+        BlockPos frontPos = pos.relative(face);
+        if (!mc.level.getBlockState(frontPos).getCollisionShape(mc.level, frontPos).isEmpty()) {
             return;
-        }
-        // 面四周的邻居若在该面上有实心形状，说明这一侧的面不完整，跳过。
-        for (Direction side : Direction.values()) {
-            if (side.getAxis() == face.getAxis()) {
-                continue;
-            }
-            BlockPos neighbourPos = pos.relative(side);
-            if (mc.level.getBlockState(neighbourPos)
-                    .isFaceSturdy(mc.level, neighbourPos, side.getOpposite(), SupportType.FULL)) {
-                return;
-            }
         }
 
         boolean horizontalFace = face == Direction.UP || face == Direction.DOWN;
@@ -129,7 +119,7 @@ public final class PlacementGuideRenderer {
         poseStack.pushPose();
         poseStack.translate(pos.getX() - cameraPos.x, pos.getY() - cameraPos.y, pos.getZ() - cameraPos.z);
 
-        // 和原版高亮线一致地固定线宽，避免出现一条粗一条细。
+        // 和原版高亮线一致地固定线宽。
         RenderSystem.lineWidth(1.0F);
         VertexConsumer consumer = event.getMultiBufferSource().getBuffer(RenderType.lines());
         PoseStack.Pose pose = poseStack.last();
@@ -139,14 +129,21 @@ public final class PlacementGuideRenderer {
         poseStack.popPose();
     }
 
-    /** 方块是否为整方块（碰撞形状正好是 1×1×1）。 */
-    private static boolean isFullCube(BlockState state) {
+    /**
+     * 方块是否为整方块：碰撞形状与单位立方体完全相同。
+     *
+     * <p>注意这里必须用 {@link BooleanOp#NOT_SAME}（两边不一样才算非空）。之前误用了
+     * {@link BooleanOp#ONLY_FIRST}（“A 减去 B”），而台阶/楼梯的形状本来就完全包含在单位立方体内，
+     * 相减结果恒为空，于是“任何在方块内的形状”都被判成了整方块，等于没判。
+     */
+    private static boolean isFullCube(BlockGetter level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
         if (state.isAir()) {
             return false;
         }
         try {
-            VoxelShape shape = state.getCollisionShape(null, BlockPos.ZERO);
-            return !Shapes.joinIsNotEmpty(shape, Shapes.block(), BooleanOp.ONLY_FIRST);
+            VoxelShape shape = state.getCollisionShape(level, pos);
+            return !shape.isEmpty() && !Shapes.joinIsNotEmpty(shape, Shapes.block(), BooleanOp.NOT_SAME);
         } catch (RuntimeException exception) {
             return false;
         }
@@ -176,12 +173,12 @@ public final class PlacementGuideRenderer {
 
     private static float[] mapFace(Direction face, float u, float v) {
         return switch (face) {
-            case UP -> new float[]{u, 1.0F + OFFSET, v};
-            case DOWN -> new float[]{u, -OFFSET, v};
-            case NORTH -> new float[]{u, v, -OFFSET};
-            case SOUTH -> new float[]{u, v, 1.0F + OFFSET};
-            case WEST -> new float[]{-OFFSET, v, u};
-            case EAST -> new float[]{1.0F + OFFSET, v, u};
+            case UP -> new float[]{u, 1.0F, v};
+            case DOWN -> new float[]{u, 0.0F, v};
+            case NORTH -> new float[]{u, v, 0.0F};
+            case SOUTH -> new float[]{u, v, 1.0F};
+            case WEST -> new float[]{0.0F, v, u};
+            case EAST -> new float[]{1.0F, v, u};
         };
     }
 
