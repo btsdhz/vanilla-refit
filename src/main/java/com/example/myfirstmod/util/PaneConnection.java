@@ -16,7 +16,7 @@ import net.minecraft.world.level.block.state.properties.Property;
  * | 编号 | 状态 | 规则 |
  * | --- | --- | --- |
  * | 1 | 启用（最高） | 水平面 8 个方向（东南西北 + 东北/东南/西北/西南）全是玻璃板 → 四个角全为真，8 个竖直面片全为假 |
- * | 2 | 启用 | 本块上方和下方都没有玻璃板时：某两个方向以及它们之间的斜角都有玻璃板 → 对应角为真（例：北 + 西 + 西北都有玻璃板 → 本块西北为真；东南/东北/西南同理） |
+ * | 2 | 启用 | 本块上方和下方都没有玻璃板时：某两个方向以及它们之间的斜角都有“原版会和玻璃板连接的方块”（玻璃板/铁栏杆、墙，或朝本块那一面是完整实心面）→ 对应角为真（例：北 + 西 + 西北都有这种方块 → 本块西北为真；东南/东北/西南同理） |
  * | 3 | 启用 | 某个方向两侧的角同时为真 → 该方向的上半与下半为假（东北 + 西北 → 北上下；东南 + 西南 → 南；东北 + 东南 → 东；西北 + 西南 → 西） |
  * | 4 | 启用 | 相邻玻璃板的斜对角面片传播到本角（北邻的南西 + 本块西边是玻璃板 → 本块西北为真；北邻的南东 + 东边是玻璃板 → 本块东北为真；南/东/西同理） |
  * | 5 | 启用 | 某个水平方向有方块（判定与原版 IronBarsBlock 完全一致）、且通过邻居玻璃板限制时：上方有方块 → 该方向上半置真，下方有方块 → 该方向下半置真；只置真，不会把没方块的那一半置假 |
@@ -56,6 +56,12 @@ public final class PaneConnection {
         boolean paneSouthEast = isPaneAt(level, pos, 1, 1);
         boolean paneNorthWest = isPaneAt(level, pos, -1, -1);
         boolean paneSouthWest = isPaneAt(level, pos, -1, 1);
+
+        // 规则 2 用的四个斜角：是不是“原版玻璃板会连接的方块”
+        boolean linkNorthEast = diagonalConnects(pane, level, pos, 1, -1);
+        boolean linkSouthEast = diagonalConnects(pane, level, pos, 1, 1);
+        boolean linkNorthWest = diagonalConnects(pane, level, pos, -1, -1);
+        boolean linkSouthWest = diagonalConnects(pane, level, pos, -1, 1);
 
         boolean hasAbove = hasBlock(level, pos.above());
         boolean hasBelow = hasBlock(level, pos.below());
@@ -120,18 +126,18 @@ public final class PaneConnection {
             }
         }
 
-        // ----- 规则 2：上下都没有玻璃板时，两个方向 + 它们之间的斜角都有玻璃板 → 该角为真 -----
+        // ----- 规则 2：上下都没有玻璃板时，两个方向 + 它们之间的斜角都有会连接的方块 → 该角为真 -----
         if (noPaneAboveOrBelow) {
-            if (paneNorth && paneEast && paneNorthEast) {
+            if (connectNorth && connectEast && linkNorthEast) {
                 northEast = true;
             }
-            if (paneSouth && paneEast && paneSouthEast) {
+            if (connectSouth && connectEast && linkSouthEast) {
                 southEast = true;
             }
-            if (paneNorth && paneWest && paneNorthWest) {
+            if (connectNorth && connectWest && linkNorthWest) {
                 northWest = true;
             }
-            if (paneSouth && paneWest && paneSouthWest) {
+            if (connectSouth && connectWest && linkSouthWest) {
                 southWest = true;
             }
         }
@@ -271,6 +277,20 @@ public final class PaneConnection {
     /** 水平方向上偏移 (dx, 0, dz) 的位置是不是玻璃板（用于四个斜角）。 */
     private static boolean isPaneAt(BlockGetter level, BlockPos pos, int dx, int dz) {
         return isPaneAt(level, pos.offset(dx, 0, dz));
+    }
+
+    /**
+     * 斜角（dx, 0, dz）位置的方块是不是“原版玻璃板会连接的方块”：
+     * 玻璃板/铁栏杆、墙，或者它朝本块那一侧的两个面之一是完整实心面（口径与原版 attachsTo 一致）。
+     */
+    private static boolean diagonalConnects(IronBarsBlock pane, BlockGetter level, BlockPos pos, int dx, int dz) {
+        BlockPos diagonalPos = pos.offset(dx, 0, dz);
+        BlockState diagonal = level.getBlockState(diagonalPos);
+        Direction faceOnX = dx > 0 ? Direction.WEST : Direction.EAST;
+        Direction faceOnZ = dz > 0 ? Direction.NORTH : Direction.SOUTH;
+        boolean solid = diagonal.isFaceSturdy(level, diagonalPos, faceOnX)
+                || diagonal.isFaceSturdy(level, diagonalPos, faceOnZ);
+        return pane.attachsTo(diagonal, solid);
     }
 
     /** 该位置是不是玻璃板。 */
