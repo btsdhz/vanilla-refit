@@ -3,6 +3,7 @@ package com.example.myfirstmod.client;
 import com.example.myfirstmod.BtsdhzOriginal;
 import com.example.myfirstmod.util.PlacementMode;
 import com.example.myfirstmod.util.PlacementModeState;
+import com.example.myfirstmod.util.SlabPlacementRules;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -85,6 +86,10 @@ public final class PlacementGuideRenderer {
             {0F, 0.5F, 1F, 0.5F},
     };
 
+    /** 逻辑 2 的中央正方形，按配置比例缓存（配置值不变时不重复构造数组）。 */
+    private static double cachedSquareRatio = -1.0D;
+    private static float[][] cachedSquare = new float[0][];
+
     private PlacementGuideRenderer() {
     }
 
@@ -102,10 +107,8 @@ public final class PlacementGuideRenderer {
             return;
         }
         // 原版放置逻辑不画提示线；台阶与楼梯各自成套，互不影响。
-        if (slab && PlacementModeState.slab(mc.player) == PlacementMode.VANILLA) {
-            return;
-        }
-        if (stair && PlacementModeState.stair(mc.player) == PlacementMode.VANILLA) {
+        PlacementMode mode = slab ? PlacementModeState.slab(mc.player) : PlacementModeState.stair(mc.player);
+        if (mode == PlacementMode.VANILLA) {
             return;
         }
 
@@ -148,8 +151,6 @@ public final class PlacementGuideRenderer {
         }
 
         boolean horizontalFace = face == Direction.UP || face == Direction.DOWN;
-        // 水平面：台阶画 X，楼梯画十字；侧面：只画中间那条横线。
-        float[][] edges = horizontalFace ? (slab ? SLAB_EDGES : STAIR_EDGES) : SIDE_EDGES;
 
         PoseStack poseStack = event.getPoseStack();
         Vec3 cameraPos = event.getCamera().getPosition();
@@ -160,10 +161,47 @@ public final class PlacementGuideRenderer {
         RenderSystem.lineWidth(1.0F);
         VertexConsumer consumer = event.getMultiBufferSource().getBuffer(RenderType.lines());
         PoseStack.Pose pose = poseStack.last();
+        // 水平面：台阶画 X，楼梯画十字；侧面：只画中间那条横线。
+        // 逻辑 2 额外把中央正方形画出来（那一块是平放区域）。
+        if (horizontalFace && slab) {
+            drawEdges(consumer, pose, face, plane, SLAB_EDGES);
+            if (mode == PlacementMode.MOD_2) {
+                drawEdges(consumer, pose, face, plane, centerSquareEdges());
+            }
+        } else if (horizontalFace) {
+            drawEdges(consumer, pose, face, plane, STAIR_EDGES);
+        } else {
+            drawEdges(consumer, pose, face, plane, SIDE_EDGES);
+        }
+        poseStack.popPose();
+    }
+
+    private static void drawEdges(VertexConsumer consumer, PoseStack.Pose pose, Direction face, double plane,
+                                  float[][] edges) {
         for (float[] edge : edges) {
             addEdge(consumer, pose, face, plane, edge[0], edge[1], edge[2], edge[3]);
         }
-        poseStack.popPose();
+    }
+
+    /** 逻辑 2 的中央正方形四条边，边长比例取自配置。 */
+    private static float[][] centerSquareEdges() {
+        double ratio = SlabPlacementRules.centerSquareRatio();
+        if (ratio != cachedSquareRatio) {
+            cachedSquareRatio = ratio;
+            if (ratio <= 0.0D || ratio >= 1.0D) {
+                cachedSquare = new float[0][];
+            } else {
+                float min = (float) (0.5D - ratio / 2.0D);
+                float max = (float) (0.5D + ratio / 2.0D);
+                cachedSquare = new float[][]{
+                        {min, min, max, min},
+                        {max, min, max, max},
+                        {max, max, min, max},
+                        {min, max, min, min},
+                };
+            }
+        }
+        return cachedSquare;
     }
 
     /**

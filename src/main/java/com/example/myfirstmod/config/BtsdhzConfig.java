@@ -39,5 +39,19 @@ public class BtsdhzConfig {
                     .comment("false：恢复原版行为，无法在上台阶下悬挂灯笼。")
                     .define("allowLanternUnderTopSlab", true);
 
+    /**
+     * 台阶放置逻辑 2 的“中央正方形”大小。
+     *
+     * 逻辑 2 在逻辑 1 的对角线分割基础上，把方块面中央抠出一个正方形：
+     * 点击正方形内放置平放台阶，正方形之外仍然按逻辑 1 竖放。
+     * 数值是正方形边长占方块面边长的比例（0~1）：越大越容易点到平放，0 表示取消正方形。
+     */
+    public static final ModConfigSpec.DoubleValue SLAB_CENTER_SQUARE_RATIO =
+            BUILDER
+                    .comment("台阶放置逻辑2：面中央“正方形”区域的边长占方块面边长的比例（0~1）。")
+                    .comment("点击该正方形内放置平放台阶；正方形之外仍按逻辑1竖放。")
+                    .comment("越大正方形越大（越容易点到平放），设为 0 相当于取消这个正方形。默认 0.5。")
+                    .defineInRange("slabCenterSquareRatio", 0.5D, 0.0D, 1.0D);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 }

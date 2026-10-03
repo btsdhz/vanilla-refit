@@ -11,5 +11,6 @@
   "message.btsdhz_original.placement_mode.slab": "台阶放置逻辑: %s",
   "message.btsdhz_original.placement_mode.stair": "楼梯放置逻辑: %s",
   "placement_mode.btsdhz_original.mod": "本模组",
+  "placement_mode.btsdhz_original.mod2": "本模组(中央正方形平放)",
   "placement_mode.btsdhz_original.vanilla": "原版"
 }

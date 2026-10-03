@@ -5,6 +5,7 @@ import com.example.myfirstmod.util.MixedSlabPlacement;
 import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.PlacementMode;
 import com.example.myfirstmod.util.PlacementModeState;
+import com.example.myfirstmod.util.SlabPlacementRules;
 import com.example.myfirstmod.util.SlabSupport;
 import com.example.myfirstmod.util.VerticalSlabMode;
 import net.minecraft.core.BlockPos;
@@ -50,8 +51,9 @@ public abstract class BlockItemMixin {
         Level level = context.getLevel();
         BlockPos clickedPos = context.getClickedPos();
         Direction clickedFace = context.getClickedFace();
+        PlacementMode placementMode = PlacementModeState.slab(context.getPlayer());
         // 台阶切到原版放置逻辑时：不再竖放，但“混合半砖”（不同材质填进空余半砖空间）仍然保留。
-        boolean vanillaMode = PlacementModeState.slab(context.getPlayer()) == PlacementMode.VANILLA;
+        boolean vanillaMode = placementMode == PlacementMode.VANILLA;
         // 创造模式：不消耗物品
         Player player = context.getPlayer();
         boolean creative = player != null && player.getAbilities().instabuild;
@@ -74,7 +76,9 @@ public abstract class BlockItemMixin {
         }
 
         // ---- 1. 点击顶面或底面：往空位（空气/水/熔岩）放一个新竖半砖 ----
-        if (clickedFace == Direction.UP || clickedFace == Direction.DOWN) {
+        // 逻辑 2 下点在中央正方形内时不竖放，交回原版平放。
+        if ((clickedFace == Direction.UP || clickedFace == Direction.DOWN)
+                && SlabPlacementRules.wantsVertical(context, placementMode)) {
             BlockPos newPos = clickedFace == Direction.UP ? clickedPos.above() : clickedPos.below();
             BlockState existingState = level.getBlockState(newPos);
             if (existingState.isAir()

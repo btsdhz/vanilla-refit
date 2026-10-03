@@ -103,10 +103,10 @@ public final class ModClientEvents {
         PlacementMode stairMode = PlacementModeState.stair(mc.player);
         PlacementMode newMode;
         if (isSlab) {
-            slabMode = slabMode.next();
+            slabMode = slabMode.next(false);
             newMode = slabMode;
         } else {
-            stairMode = stairMode.next();
+            stairMode = stairMode.next(true);
             newMode = stairMode;
         }
 

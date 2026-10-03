@@ -5,6 +5,7 @@ import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.ModTags;
 import com.example.myfirstmod.util.PlacementMode;
 import com.example.myfirstmod.util.PlacementModeState;
+import com.example.myfirstmod.util.SlabPlacementRules;
 import com.example.myfirstmod.util.SlabSupport;
 import com.example.myfirstmod.util.VerticalSlabMode;
 import net.minecraft.core.BlockPos;
@@ -82,8 +83,9 @@ public abstract class SlabBlockMixin {
         if (!SlabSupport.isSupportedSlab((Block) (Object) this)) {
             return;
         }
+        PlacementMode placementMode = PlacementModeState.slab(context.getPlayer());
         // 该玩家的台阶放置逻辑切到了原版：不套用竖放/液体状态。
-        if (PlacementModeState.slab(context.getPlayer()) == PlacementMode.VANILLA) {
+        if (placementMode == PlacementMode.VANILLA) {
             return;
         }
         BlockState original = cir.getReturnValue();
@@ -108,7 +110,9 @@ public abstract class SlabBlockMixin {
         Direction clickedFace = context.getClickedFace();
         BlockState newState;
 
-        if (clickedFace == Direction.UP || clickedFace == Direction.DOWN) {
+        // 逻辑 2 下点在中央正方形内时按平放处理（和 BlockItemMixin 的判定一致）。
+        if ((clickedFace == Direction.UP || clickedFace == Direction.DOWN)
+                && SlabPlacementRules.wantsVertical(context, placementMode)) {
             Direction facing = getHorizontalDirectionFromClick(context);
             VerticalSlabMode mode;
             SlabType type;
