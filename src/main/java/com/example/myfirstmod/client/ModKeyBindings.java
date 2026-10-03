@@ -25,6 +25,14 @@ public final class ModKeyBindings {
             KEY_CATEGORY
     );
 
+    /** 切换当前手持台阶/楼梯的放置逻辑(本模组竖放 <-> 原版)。 */
+    private static final KeyMapping PLACEMENT_MODE_KEY = new KeyMapping(
+            "key.btsdhz_original.placement_mode",
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_V,
+            KEY_CATEGORY
+    );
+
     private ModKeyBindings() {
     }
 
@@ -33,6 +41,7 @@ public final class ModKeyBindings {
         // 之前漏注册了 SIT_KEY: 按键不在注册表里时 consumeClick() 永远为 false,
         // 也不能在设置里改键, 坐下按键等于失效。
         event.register(SIT_KEY);
+        event.register(PLACEMENT_MODE_KEY);
         // 原版的按键查表是在 Options.load() 里建的, 模组按键注册在它之后,
         // 这里补一次刷新, 让本模组的按键也能收到点击事件。
         KeyMapping.resetMapping();
@@ -44,5 +53,9 @@ public final class ModKeyBindings {
 
     public static boolean consumeSit() {
         return SIT_KEY.consumeClick();
+    }
+
+    public static boolean consumePlacementMode() {
+        return PLACEMENT_MODE_KEY.consumeClick();
     }
 }

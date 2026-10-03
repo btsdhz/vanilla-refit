@@ -8,6 +8,11 @@
   "key.categories.btsdhz_original": "Monkey & Original Changes",
   "key.btsdhz_original.crawl": "Crawl (Hold)",
   "key.btsdhz_original.sit": "Sit (Toggle)",
+  "key.btsdhz_original.placement_mode": "Cycle Placement Mode (Slab/Stair)",
+  "message.btsdhz_original.placement_mode.slab": "Slab placement mode: %s",
+  "message.btsdhz_original.placement_mode.stair": "Stair placement mode: %s",
+  "placement_mode.btsdhz_original.mod": "Mod (vertical)",
+  "placement_mode.btsdhz_original.vanilla": "Vanilla",
 
   "btsdhz_original.configuration.title": "猴子的原版更改 Configs",
   "btsdhz_original.configuration.section.btsdhz_original.common.toml": "猴子的原版更改 Configs",

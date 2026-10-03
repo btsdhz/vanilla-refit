@@ -3,6 +3,8 @@ package com.example.myfirstmod.mixin;
 import com.example.myfirstmod.util.FluidType;
 import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.ModTags;
+import com.example.myfirstmod.util.PlacementMode;
+import com.example.myfirstmod.util.PlacementModeState;
 import com.example.myfirstmod.util.StairConnection;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -43,6 +45,10 @@ public abstract class StairBlockMixin {
     // ===== 2. 放置逻辑 =====
     @Inject(method = "getStateForPlacement", at = @At("RETURN"), cancellable = true, remap = false)
     private void btsdhz_original$getStateForPlacement(BlockPlaceContext context, CallbackInfoReturnable<BlockState> cir) {
+        // 该玩家的楼梯放置逻辑切到了原版：不套用竖楼梯状态。
+        if (PlacementModeState.stair(context.getPlayer()) == PlacementMode.VANILLA) {
+            return;
+        }
         BlockState original = cir.getReturnValue();
         if (original == null) return;
 

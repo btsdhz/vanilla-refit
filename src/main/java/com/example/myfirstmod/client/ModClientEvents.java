@@ -6,12 +6,21 @@ import com.example.myfirstmod.block.MixedSlabBlock;
 import com.example.myfirstmod.client.renderer.FenceKnotRenderer;
 import com.example.myfirstmod.client.renderer.SitEntityRenderer;
 import com.example.myfirstmod.network.CrawlStatePayload;
+import com.example.myfirstmod.network.PlacementModePayload;
 import com.example.myfirstmod.network.SitTogglePayload;
+import com.example.myfirstmod.util.PlacementMode;
+import com.example.myfirstmod.util.PlacementModeState;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.StairBlock;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
@@ -45,6 +54,10 @@ public final class ModClientEvents {
             PacketDistributor.sendToServer(new SitTogglePayload());
         }
 
+        if (mc.screen == null && ModKeyBindings.consumePlacementMode()) {
+            togglePlacementMode(mc);
+        }
+
         boolean wantCrawl = ModKeyBindings.isCrawlDown()
                 && mc.player.isAlive()
                 && !mc.player.isSpectator()
@@ -69,5 +82,52 @@ public final class ModClientEvents {
             crawlStateSent = wantCrawl;
             PacketDistributor.sendToServer(new CrawlStatePayload(wantCrawl));
         }
+    }
+
+    /**
+     * 切换“当前手持那种方块”的放置逻辑：拿着台阶只改台阶的，拿着楼梯只改楼梯的，两者互不影响。
+     * 切换后同时写本地(供客户端预测与提示线使用)并发给服务端(供权威放置判定使用)。
+     */
+    private static void togglePlacementMode(Minecraft mc) {
+        if (mc.player == null) {
+            return;
+        }
+        ItemStack held = mc.player.getMainHandItem();
+        boolean isSlab = held.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof SlabBlock;
+        boolean isStair = held.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof StairBlock;
+        if (!isSlab && !isStair) {
+            return;
+        }
+
+        PlacementMode slabMode = PlacementModeState.slab(mc.player);
+        PlacementMode stairMode = PlacementModeState.stair(mc.player);
+        PlacementMode newMode;
+        if (isSlab) {
+            slabMode = slabMode.next();
+            newMode = slabMode;
+        } else {
+            stairMode = stairMode.next();
+            newMode = stairMode;
+        }
+
+        PlacementModeState.set(mc.player, slabMode, stairMode);
+        PacketDistributor.sendToServer(PlacementModePayload.of(slabMode, stairMode));
+
+        Component modeName = Component.translatable("placement_mode.btsdhz_original." + newMode.getSerializedName());
+        mc.gui.setOverlayMessage(
+                Component.translatable(
+                        isSlab ? "message.btsdhz_original.placement_mode.slab"
+                                : "message.btsdhz_original.placement_mode.stair",
+                        modeName),
+                false);
+    }
+
+    /** 登录时把本地模式同步给服务端, 避免服务端清过状态后与客户端不一致(客户端预测会错)。 */
+    @SubscribeEvent
+    public static void onLoggingIn(ClientPlayerNetworkEvent.LoggingIn event) {
+        PacketDistributor.sendToServer(
+                PlacementModePayload.of(
+                        PlacementModeState.slab(event.getPlayer()),
+                        PlacementModeState.stair(event.getPlayer())));
     }
 }

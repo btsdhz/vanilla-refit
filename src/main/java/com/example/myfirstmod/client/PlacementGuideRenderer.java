@@ -1,6 +1,8 @@
 package com.example.myfirstmod.client;
 
 import com.example.myfirstmod.BtsdhzOriginal;
+import com.example.myfirstmod.util.PlacementMode;
+import com.example.myfirstmod.util.PlacementModeState;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -97,6 +99,13 @@ public final class PlacementGuideRenderer {
         boolean slab = held.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof SlabBlock;
         boolean stair = held.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof StairBlock;
         if (!slab && !stair) {
+            return;
+        }
+        // 原版放置逻辑不画提示线；台阶与楼梯各自成套，互不影响。
+        if (slab && PlacementModeState.slab(mc.player) == PlacementMode.VANILLA) {
+            return;
+        }
+        if (stair && PlacementModeState.stair(mc.player) == PlacementMode.VANILLA) {
             return;
         }
 

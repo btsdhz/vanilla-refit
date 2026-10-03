@@ -3,6 +3,8 @@ package com.example.myfirstmod.mixin;
 import com.example.myfirstmod.util.FluidType;
 import com.example.myfirstmod.util.MixedSlabPlacement;
 import com.example.myfirstmod.util.ModBlockStateProperties;
+import com.example.myfirstmod.util.PlacementMode;
+import com.example.myfirstmod.util.PlacementModeState;
 import com.example.myfirstmod.util.SlabSupport;
 import com.example.myfirstmod.util.VerticalSlabMode;
 import net.minecraft.core.BlockPos;
@@ -42,6 +44,10 @@ public abstract class BlockItemMixin {
         }
         // 其它模组的台阶不应用本模组的堆叠/混合/竖放逻辑，保持原版放置
         if (!SlabSupport.isSupportedSlab(block)) {
+            return;
+        }
+        // 该玩家的台阶放置逻辑切到了原版：整段交给原版处理。
+        if (PlacementModeState.slab(context.getPlayer()) == PlacementMode.VANILLA) {
             return;
         }
 

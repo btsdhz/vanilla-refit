@@ -3,6 +3,8 @@ package com.example.myfirstmod.mixin;
 import com.example.myfirstmod.util.FluidType;
 import com.example.myfirstmod.util.ModBlockStateProperties;
 import com.example.myfirstmod.util.ModTags;
+import com.example.myfirstmod.util.PlacementMode;
+import com.example.myfirstmod.util.PlacementModeState;
 import com.example.myfirstmod.util.SlabSupport;
 import com.example.myfirstmod.util.VerticalSlabMode;
 import net.minecraft.core.BlockPos;
@@ -78,6 +80,10 @@ public abstract class SlabBlockMixin {
     private void btsdhz_original$getStateForPlacement(BlockPlaceContext context, CallbackInfoReturnable<BlockState> cir) {
         // 其它模组的台阶：不应用本模组的竖放/液体逻辑，保持原版
         if (!SlabSupport.isSupportedSlab((Block) (Object) this)) {
+            return;
+        }
+        // 该玩家的台阶放置逻辑切到了原版：不套用竖放/液体状态。
+        if (PlacementModeState.slab(context.getPlayer()) == PlacementMode.VANILLA) {
             return;
         }
         BlockState original = cir.getReturnValue();
