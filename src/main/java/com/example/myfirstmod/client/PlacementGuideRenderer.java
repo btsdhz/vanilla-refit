@@ -43,6 +43,10 @@ import net.neoforged.neoforge.client.event.RenderHighlightEvent;
  *         台阶/楼梯这种缺一块的形状在这一步被排除，不用去挨个适配形状。</li>
  * </ol>
  *
+ * <p>另外，台阶“朝空余半砖空间”的那张靠内的面（下台阶的顶面、上台阶的底面、竖半砖的内侧那一面）
+ * 不画线：点它是把两块半砖合并成一整块（合并逻辑），不是紧邻放置，画在这里会误导。
+ * 这类面的平面坐标都严格落在方块内部（0.5），而外侧那几张面都在 0 或 1，据此区分。
+ *
  * <p>颜色与线宽和原版高亮外框完全一致（顶点色 0,0,0,0.4，线宽 1）。只额外画线，
  * 原版外框仍然照常绘制。
  */
@@ -125,6 +129,12 @@ public final class PlacementGuideRenderer {
                 : shape.min(axis);
 
         if (!isFaceComplete(shape, face, plane)) {
+            return;
+        }
+
+        // 台阶靠内那面（朝空余半砖空间）点击是合并成整块半砖，不是紧邻放置，不画提示线。
+        // 平面严格落在方块内部即为此类面；外侧的面都在 0 或 1。
+        if (state.getBlock() instanceof SlabBlock && plane > 1.0E-6 && plane < 1.0 - 1.0E-6) {
             return;
         }
 
