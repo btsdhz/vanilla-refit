@@ -19,12 +19,15 @@ import net.minecraft.world.level.block.state.properties.Property;
  * | 2 | 启用 | 本块上方和下方都没有玻璃板时：某两个方向以及它们之间的斜角都有玻璃板 → 对应角为真（例：北 + 西 + 西北都有玻璃板 → 本块西北为真；东南/东北/西南同理） |
  * | 3 | 启用 | 某个方向两侧的角同时为真 → 该方向的上半与下半为假（东北 + 西北 → 北上下；东南 + 西南 → 南；东北 + 东南 → 东；西北 + 西南 → 西） |
  * | 4 | 启用 | 相邻玻璃板的斜对角面片传播到本角（北邻的南西 + 本块西边是玻璃板 → 本块西北为真；北邻的南东 + 东边是玻璃板 → 本块东北为真；南/东/西同理） |
- * | 5 | 启用 | 某个水平方向有方块（判定与原版 IronBarsBlock 完全一致）、且邻居若是玻璃板则它也必须朝向本块时：上方有方块 → 该方向上半置真，下方有方块 → 该方向下半置真；只置真，不会把没方块的那一半置假 |
+ * | 5 | 启用 | 某个水平方向有方块（判定与原版 IronBarsBlock 完全一致）、且通过邻居玻璃板限制时：上方有方块 → 该方向上半置真，下方有方块 → 该方向下半置真；只置真，不会把没方块的那一半置假 |
  * | 6 | 启用 | 任意一个角为真 → 8 个竖直面片全为假 |
- * | 7 | 启用 | 某个水平方向有方块（判定与原版一致）、且邻居若是玻璃板则它也必须朝向本块 → 该方向的上半与下半都为真 |
+ * | 7 | 启用 | 某个水平方向有方块（判定与原版一致）、且通过邻居玻璃板限制 → 该方向的上半与下半都为真 |
  *
  * 规则 5、7 的补充限制：邻居不是玻璃板（墙、完整方块等）时不受限制；
- * 邻居是玻璃板时，要求它朝向本块的那一侧（本方向的反方向）上半或下半有一个为真。
+ * 邻居是玻璃板时，要求满足下面任意一条：
+ *   - 它朝向本块的那一侧（本方向的反方向）上半或下半有一个为真；
+ *   - 它的四个角（东北/东南/西北/西南）有任意一个为真 —— 这条只看几何，不依赖对方先点亮，
+ *     所以两块玻璃板相邻时靠它解锁，不会互相等待。
  *
  * 起点（不属于上面任何一条）：12 个属性先全部置为假，周围什么都没有时就是原版那根棍。
  *
@@ -286,7 +289,7 @@ public final class PaneConnection {
 
     /**
      * 规则 5、7 的补充限制：该方向的邻居不是玻璃板时直接通过；
-     * 邻居是玻璃板时，要求它朝向本块的那一侧（本方向的反方向）上半或下半有一个为真。
+     * 邻居是玻璃板时，要求它朝向本块的那一侧上半/下半有一个为真，或者它自己有任意一个角为真。
      */
     private static boolean neighbourFacesBack(BlockGetter level, BlockPos pos, Direction direction) {
         BlockState neighbour = level.getBlockState(pos.relative(direction));
@@ -294,7 +297,13 @@ public final class PaneConnection {
             return true;
         }
         Direction facing = direction.getOpposite();
-        return isOn(neighbour, lowerProperty(facing)) || isOn(neighbour, upperProperty(facing));
+        if (isOn(neighbour, lowerProperty(facing)) || isOn(neighbour, upperProperty(facing))) {
+            return true;
+        }
+        return isOn(neighbour, ModBlockStateProperties.PANE_NORTH_EAST)
+                || isOn(neighbour, ModBlockStateProperties.PANE_SOUTH_EAST)
+                || isOn(neighbour, ModBlockStateProperties.PANE_NORTH_WEST)
+                || isOn(neighbour, ModBlockStateProperties.PANE_SOUTH_WEST);
     }
 
     /** 某个水平方向的“下半”属性（原版属性）。 */
