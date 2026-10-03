@@ -5,12 +5,9 @@ import com.example.myfirstmod.ModEntities;
 import com.example.myfirstmod.block.MixedSlabBlock;
 import com.example.myfirstmod.client.renderer.FenceKnotRenderer;
 import com.example.myfirstmod.client.renderer.SitEntityRenderer;
-import com.example.myfirstmod.entity.SitEntity;
-import com.example.myfirstmod.mixin.GuiAccessor;
 import com.example.myfirstmod.network.CrawlStatePayload;
 import com.example.myfirstmod.network.SitTogglePayload;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Pose;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -48,15 +45,6 @@ public final class ModClientEvents {
             PacketDistributor.sendToServer(new SitTogglePayload());
         }
 
-        // 原版会在乘客数据包里提示"按 Shift 脱离"; 我们的座位是按键切换下车,
-        // 潜行键按不动, 这条提示会一直挂着误导人。上车那一 tick 发完就抹掉。
-        if (mc.player.getVehicle() instanceof SitEntity
-                && mc.gui instanceof GuiAccessor gui
-                && gui.btsdhz$getOverlayMessageString() != null
-                && gui.btsdhz$getOverlayMessageString().getString().equals(dismountHintText())) {
-            gui.btsdhz$setOverlayMessageString(null);
-        }
-
         boolean wantCrawl = ModKeyBindings.isCrawlDown()
                 && mc.player.isAlive()
                 && !mc.player.isSpectator()
@@ -81,10 +69,5 @@ public final class ModClientEvents {
             crawlStateSent = wantCrawl;
             PacketDistributor.sendToServer(new CrawlStatePayload(wantCrawl));
         }
-    }
-
-    private static String dismountHintText() {
-        return Component.translatable("mount.onboard",
-                Minecraft.getInstance().options.keyShift.getTranslatedKeyMessage()).getString();
     }
 }

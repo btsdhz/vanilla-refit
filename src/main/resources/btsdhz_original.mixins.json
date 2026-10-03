@@ -32,7 +32,7 @@
     "TorchParticleMixin",
     "RedstoneTorchParticleMixin",
     "MultiPlayerGameModeMixin",
-    "GuiAccessor"
+    "SitDismountHintMixin"
   ],
   "server": [
   ],
