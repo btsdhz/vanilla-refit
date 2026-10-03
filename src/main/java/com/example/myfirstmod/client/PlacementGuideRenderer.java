@@ -10,7 +10,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -35,10 +34,14 @@ import net.neoforged.neoforge.client.event.RenderHighlightEvent;
  *     <li>侧面：上下等分的那条中线；</li>
  * </ul>
  *
- * <p><b>只在完整、紧贴、露出的整方块表面画。</b>提示线的坐标是按“方块边界所在的平面”
- * （0 或 1）算的，只有整方块的六个面才正好落在那里；台阶/楼梯这类非整方块的上表面在
- * 方块内部，线会浮空，所以直接不画（不去花力气适配形状）。另外要求面正前方那一格没有实体，
- * 保证这个面是完整露出来的、也确实能往上放方块。
+ * <p><b>判定看的是“这个面是不是完整面”，不是“方块是不是整方块”。</b>
+ * 很多非整方块也有完整面（下台阶的顶面、上台阶的底面、地毯顶面……）。具体做法：
+ * <ol>
+ *     <li>取命中方向那一侧的形状极值平面（顶面取 maxY、底面取 minY、南北面取 minZ/maxZ……）。
+ *         这一点很关键——下台阶的顶面在 y=0.5 而不是 1.0，直接按方块边界画就会浮空；</li>
+ *     <li>把该平面上的整个单位正方形与方块形状求差（ONLY_FIRST），差集为空才算“完整面”。
+ *         台阶/楼梯这种缺一块的形状在这一步被排除，不用去挨个适配形状。</li>
+ * </ol>
  *
  * <p>颜色与线宽和原版高亮外框完全一致（顶点色 0,0,0,0.4，线宽 1）。只额外画线，
  * 原版外框仍然照常绘制。
@@ -49,12 +52,15 @@ public final class PlacementGuideRenderer {
     /**
      * 与原版外框完全一致的顶点色。
      * 见 {@code LevelRenderer#renderHitOutline}：0,0,0,0.4。
-     * 原版看起来是灰色，是因为半透明黑与原版高亮混合的结果；直接抄同一个值才会一致。
+     * 原版看着是灰色，是半透明黑与原版高亮混合的结果；直接抄同一个值才会一致。
      */
     private static final float R = 0.0F;
     private static final float G = 0.0F;
     private static final float B = 0.0F;
     private static final float A = 0.4F;
+
+    /** 用来把“整张面”做成一片极薄的形状再做差集；取 1/1000 格，远小于任何具体形状。 */
+    private static final double FACE_EPS = 1.0E-3;
 
     /** 台阶：两条对角线（X 分割），单位 [0,1]。 */
     private static final float[][] SLAB_EDGES = {
@@ -100,13 +106,25 @@ public final class PlacementGuideRenderer {
             return;
         }
 
-        // 1. 命中方块必须是整方块：只有这样它的六个面才和方块边界平面重合，线才不会浮空。
-        if (!isFullCube(mc.level, pos)) {
+        BlockState state = mc.level.getBlockState(pos);
+        VoxelShape shape;
+        try {
+            // 用渲染形状（和原版外框同源），玩家看到的面和它一致。
+            shape = state.getShape(mc.level, pos);
+        } catch (RuntimeException exception) {
             return;
         }
-        // 2. 面正前方那一格必须是空的（无实体碰撞），保证这个面完整露出、也放得下新方块。
-        BlockPos frontPos = pos.relative(face);
-        if (!mc.level.getBlockState(frontPos).getCollisionShape(mc.level, frontPos).isEmpty()) {
+        if (shape.isEmpty()) {
+            return;
+        }
+
+        // 命中方向那一侧的形状极值平面：顶面 maxY、底面 minY、北面 minZ、南面 maxZ……
+        Direction.Axis axis = face.getAxis();
+        double plane = face.getAxisDirection() == Direction.AxisDirection.POSITIVE
+                ? shape.max(axis)
+                : shape.min(axis);
+
+        if (!isFaceComplete(shape, face, plane)) {
             return;
         }
 
@@ -124,39 +142,39 @@ public final class PlacementGuideRenderer {
         VertexConsumer consumer = event.getMultiBufferSource().getBuffer(RenderType.lines());
         PoseStack.Pose pose = poseStack.last();
         for (float[] edge : edges) {
-            addEdge(consumer, pose, face, edge[0], edge[1], edge[2], edge[3]);
+            addEdge(consumer, pose, face, plane, edge[0], edge[1], edge[2], edge[3]);
         }
         poseStack.popPose();
     }
 
     /**
-     * 方块是否为整方块：碰撞形状与单位立方体完全相同。
+     * 该面是不是完整面：把平面上的整个单位正方形做成一片极薄的形状，减去方块形状后为空，
+     * 就说明整张面都被方块覆盖（也就是完整面）。
      *
-     * <p>注意这里必须用 {@link BooleanOp#NOT_SAME}（两边不一样才算非空）。之前误用了
-     * {@link BooleanOp#ONLY_FIRST}（“A 减去 B”），而台阶/楼梯的形状本来就完全包含在单位立方体内，
-     * 相减结果恒为空，于是“任何在方块内的形状”都被判成了整方块，等于没判。
+     * <p>注意必须用 {@link BooleanOp#ONLY_FIRST}（“A 减 B”，A 是被减数）——这里 A 是那张整面。
+     * 之前判断整方块时把它用反了（拿方块形状当被减数），导致几乎所有方块都被当成整方块。
      */
-    private static boolean isFullCube(BlockGetter level, BlockPos pos) {
-        BlockState state = level.getBlockState(pos);
-        if (state.isAir()) {
-            return false;
-        }
-        try {
-            VoxelShape shape = state.getCollisionShape(level, pos);
-            return !shape.isEmpty() && !Shapes.joinIsNotEmpty(shape, Shapes.block(), BooleanOp.NOT_SAME);
-        } catch (RuntimeException exception) {
-            return false;
-        }
+    private static boolean isFaceComplete(VoxelShape shape, Direction face, double plane) {
+        VoxelShape fullFace = switch (face) {
+            case UP -> Shapes.box(0.0, plane - FACE_EPS, 0.0, 1.0, plane, 1.0);
+            case DOWN -> Shapes.box(0.0, plane, 0.0, 1.0, plane + FACE_EPS, 1.0);
+            case NORTH -> Shapes.box(0.0, 0.0, plane - FACE_EPS, 1.0, 1.0, plane);
+            case SOUTH -> Shapes.box(0.0, 0.0, plane, 1.0, 1.0, plane + FACE_EPS);
+            case WEST -> Shapes.box(plane - FACE_EPS, 0.0, 0.0, plane, 1.0, 1.0);
+            case EAST -> Shapes.box(plane, 0.0, 0.0, plane + FACE_EPS, 1.0, 1.0);
+        };
+        return !Shapes.joinIsNotEmpty(fullFace, shape, BooleanOp.ONLY_FIRST);
     }
 
     /**
-     * 画一条边。输入是面内的两个 2D 坐标（0~1），按面朝向映射到方块局部 3D 坐标。
+     * 画一条边。输入是面内的两个 2D 坐标（0~1），按面朝向映射到方块局部 3D 坐标，
+     * 并用命中面的实际平面坐标（不一定是 0/1，比如下台阶顶面是 0.5）。
      * 顶/底：u=x, v=z；南北侧：u=x, v=y；东西侧：u=z, v=y。
      */
-    private static void addEdge(VertexConsumer consumer, PoseStack.Pose pose, Direction face,
+    private static void addEdge(VertexConsumer consumer, PoseStack.Pose pose, Direction face, double plane,
                                 float u1, float v1, float u2, float v2) {
-        float[] a = mapFace(face, u1, v1);
-        float[] b = mapFace(face, u2, v2);
+        float[] a = mapFace(face, plane, u1, v1);
+        float[] b = mapFace(face, plane, u2, v2);
         // 法线取“沿线方向归一化”，和原版 renderShape 一致。
         float dx = b[0] - a[0];
         float dy = b[1] - a[1];
@@ -171,14 +189,12 @@ public final class PlacementGuideRenderer {
         addVertex(consumer, pose, b, dx, dy, dz);
     }
 
-    private static float[] mapFace(Direction face, float u, float v) {
+    private static float[] mapFace(Direction face, double plane, float u, float v) {
+        float p = (float) plane;
         return switch (face) {
-            case UP -> new float[]{u, 1.0F, v};
-            case DOWN -> new float[]{u, 0.0F, v};
-            case NORTH -> new float[]{u, v, 0.0F};
-            case SOUTH -> new float[]{u, v, 1.0F};
-            case WEST -> new float[]{0.0F, v, u};
-            case EAST -> new float[]{1.0F, v, u};
+            case UP, DOWN -> new float[]{u, p, v};
+            case NORTH, SOUTH -> new float[]{u, v, p};
+            case WEST, EAST -> new float[]{p, v, u};
         };
     }
 
