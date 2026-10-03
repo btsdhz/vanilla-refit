@@ -13,5 +13,8 @@
   "placement_mode.btsdhz_original.mod": "默认",
   "placement_mode.btsdhz_original.mod2": "混合",
   "placement_mode.btsdhz_original.mod3": "紧贴",
-  "placement_mode.btsdhz_original.vanilla": "原版"
+  "placement_mode.btsdhz_original.vanilla": "原版",
+  "btsdhz_original.configuration.title": "猴子的原版更改 配置",
+  "btsdhz_original.configuration.section.btsdhz_original.common.toml": "猴子的原版更改 配置",
+  "btsdhz_original.configuration.section.btsdhz_original.common.toml.title": "猴子的原版更改 配置"
 }
