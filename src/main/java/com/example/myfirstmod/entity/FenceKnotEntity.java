@@ -316,7 +316,19 @@ public class FenceKnotEntity extends LeashFenceKnotEntity {
         this.setPos(p.getX(), p.getY(), p.getZ());
         this.getEntityData().set(DATA_PARTNERS, compound.getCompound("Partners"));
         String pending = compound.getString("PendingPlayer");
-        this.getEntityData().set(DATA_PENDING_PLAYER, pending.isEmpty() ? Optional.empty() : Optional.of(UUID.fromString(pending)));
+        this.getEntityData().set(DATA_PENDING_PLAYER, readPendingPlayer(pending));
+    }
+
+    /** 存档里的 UUID 字符串可能被写坏, 解析失败时回退成"没有待连接玩家", 避免区块加载崩溃。 */
+    private static Optional<UUID> readPendingPlayer(String pending) {
+        if (pending == null || pending.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(UUID.fromString(pending));
+        } catch (IllegalArgumentException exception) {
+            return Optional.empty();
+        }
     }
 
     @Override
