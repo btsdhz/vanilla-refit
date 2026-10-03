@@ -166,6 +166,8 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
     ]
     inputs.properties replaceProperties
     expand replaceProperties
+    // 模板替换出的 mods.toml 用 UTF-8 写，中文显示名/描述才不会乱码
+    filteringCharset = 'UTF-8'
     from "src/main/templates"
     into "build/generated/sources/modMetadata"
 }
