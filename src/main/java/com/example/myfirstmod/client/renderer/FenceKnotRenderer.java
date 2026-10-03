@@ -32,6 +32,16 @@ public class FenceKnotRenderer extends EntityRenderer<FenceKnotEntity> {
     private static final ResourceLocation KNOT_LOCATION =
             ResourceLocation.withDefaultNamespace("textures/entity/lead_knot.png");
 
+    /**
+     * 复用的临时缓冲区与取光用的可变坐标：渲染在主线程串行进行，
+     * 复用它们可以避免“每条绳每帧”都分配 3 个 double 数组、1 个 int 数组和几个 BlockPos。
+     */
+    private static final double[] ROPE_X = new double[STEPS + 1];
+    private static final double[] ROPE_Y = new double[STEPS + 1];
+    private static final double[] ROPE_Z = new double[STEPS + 1];
+    private static final int[] ROPE_LIGHT = new int[STEPS + 1];
+    private static final BlockPos.MutableBlockPos LIGHT_POS = new BlockPos.MutableBlockPos();
+
     private final LeashKnotModel<FenceKnotEntity> knotModel;
 
     public FenceKnotRenderer(EntityRendererProvider.Context context) {
@@ -56,9 +66,11 @@ public class FenceKnotRenderer extends EntityRenderer<FenceKnotEntity> {
         for (Map.Entry<BlockPos, Boolean> entry : entity.getPartners().entrySet()) {
             BlockPos partner = entry.getKey();
             if (entity.getPos().compareTo(partner) < 0) {
-                Vec3 end = new Vec3(partner.getX() + 0.5, partner.getY() + 0.575, partner.getZ() + 0.5);
-                if (end.distanceToSqr(self) > 1.0E-6D) {
-                    renderRope(entity, self, end, partialTicks, poseStack, buffer);
+                double endX = partner.getX() + 0.5D;
+                double endY = partner.getY() + 0.575D;
+                double endZ = partner.getZ() + 0.5D;
+                if (self.distanceToSqr(endX, endY, endZ) > 1.0E-6D) {
+                    renderRope(entity, self.x, self.y, self.z, endX, endY, endZ, poseStack, buffer);
                 }
             }
         }
@@ -75,44 +87,70 @@ public class FenceKnotRenderer extends EntityRenderer<FenceKnotEntity> {
             }
             if (target != null) {
                 Vec3 hand = target.getRopeHoldPosition(partialTicks);
-                if (hand.distanceToSqr(self) > 1.0E-6D) {
-                    renderRope(entity, self, hand, partialTicks, poseStack, buffer);
+                if (self.distanceToSqr(hand.x, hand.y, hand.z) > 1.0E-6D) {
+                    renderRope(entity, self.x, self.y, self.z, hand.x, hand.y, hand.z, poseStack, buffer);
                 }
             }
         }
     }
 
-    private void renderRope(FenceKnotEntity entity, Vec3 startWorld, Vec3 endWorld,
-                            float partialTicks, PoseStack poseStack, MultiBufferSource buffer) {
+    private void renderRope(FenceKnotEntity entity, double startX, double startY, double startZ,
+                            double endX, double endY, double endZ,
+                            PoseStack poseStack, MultiBufferSource buffer) {
         double ox = entity.getX();
         double oy = entity.getY();
         double oz = entity.getZ();
-        double ax = startWorld.x - ox;
-        double ay = startWorld.y - oy;
-        double az = startWorld.z - oz;
-        double bx = endWorld.x - ox;
-        double by = endWorld.y - oy;
-        double bz = endWorld.z - oz;
+        double ax = startX - ox;
+        double ay = startY - oy;
+        double az = startZ - oz;
+        double bx = endX - ox;
+        double by = endY - oy;
+        double bz = endZ - oz;
 
         double fx = bx - ax;
         double fy = by - ay;
         double fz = bz - az;
         double span = Math.sqrt(fx * fx + fz * fz);
 
-        Vec3 tangent = new Vec3(fx, fy, fz).normalize();
-        Vec3 up = new Vec3(0.0D, 1.0D, 0.0D);
-        Vec3 perpU = tangent.cross(up);
-        if (perpU.lengthSqr() < 1.0E-8D) {
-            perpU = new Vec3(1.0D, 0.0D, 0.0D);
-        } else {
-            perpU = perpU.normalize();
+        // 方向向量全部用 double 直接算，避免每帧为每条绳分配 Vec3。
+        double length = Math.sqrt(fx * fx + fy * fy + fz * fz);
+        if (length < 1.0E-6D) {
+            return;
         }
-        Vec3 perpV = tangent.cross(perpU).normalize();
+        double tx = fx / length;
+        double ty = fy / length;
+        double tz = fz / length;
 
-        int blockLightA = entity.level().getBrightness(LightLayer.BLOCK, BlockPos.containing(startWorld));
-        int blockLightB = entity.level().getBrightness(LightLayer.BLOCK, BlockPos.containing(endWorld));
-        int skyA = entity.level().getBrightness(LightLayer.SKY, BlockPos.containing(startWorld));
-        int skyB = entity.level().getBrightness(LightLayer.SKY, BlockPos.containing(endWorld));
+        // perpU = tangent × (0,1,0) = (-tz, 0, tx)
+        double perpUx = -tz;
+        double perpUy = 0.0D;
+        double perpUz = tx;
+        double perpULength = Math.sqrt(perpUx * perpUx + perpUz * perpUz);
+        if (perpULength < 1.0E-4D) {
+            perpUx = 1.0D;
+            perpUy = 0.0D;
+            perpUz = 0.0D;
+        } else {
+            perpUx /= perpULength;
+            perpUz /= perpULength;
+        }
+        // perpV = tangent × perpU（两者已正交，长度接近 1，这里仍做一次归一化兜底）
+        double perpVx = ty * perpUz - tz * perpUy;
+        double perpVy = tz * perpUx - tx * perpUz;
+        double perpVz = tx * perpUy - ty * perpUx;
+        double perpVLength = Math.sqrt(perpVx * perpVx + perpVy * perpVy + perpVz * perpVz);
+        if (perpVLength > 1.0E-4D) {
+            perpVx /= perpVLength;
+            perpVy /= perpVLength;
+            perpVz /= perpVLength;
+        }
+
+        LIGHT_POS.set(Mth.floor(startX), Mth.floor(startY), Mth.floor(startZ));
+        int blockLightA = entity.level().getBrightness(LightLayer.BLOCK, LIGHT_POS);
+        int skyA = entity.level().getBrightness(LightLayer.SKY, LIGHT_POS);
+        LIGHT_POS.set(Mth.floor(endX), Mth.floor(endY), Mth.floor(endZ));
+        int blockLightB = entity.level().getBrightness(LightLayer.BLOCK, LIGHT_POS);
+        int skyB = entity.level().getBrightness(LightLayer.SKY, LIGHT_POS);
 
         double aParam = Math.max(CATENARY_A * span, 1.0E-4D);
         double endYRel = aParam * Math.cosh(span / (2.0D * aParam));
@@ -120,10 +158,10 @@ public class FenceKnotRenderer extends EntityRenderer<FenceKnotEntity> {
         VertexConsumer vc = buffer.getBuffer(RenderType.leash());
         Matrix4f m = poseStack.last().pose();
 
-        double[] cx = new double[STEPS + 1];
-        double[] cy = new double[STEPS + 1];
-        double[] cz = new double[STEPS + 1];
-        int[] lights = new int[STEPS + 1];
+        double[] cx = ROPE_X;
+        double[] cy = ROPE_Y;
+        double[] cz = ROPE_Z;
+        int[] lights = ROPE_LIGHT;
         for (int i = 0; i <= STEPS; i++) {
             float f = (float) i / (float) STEPS;
             double xc = (f - 0.5D) * span;
@@ -138,13 +176,13 @@ public class FenceKnotRenderer extends EntityRenderer<FenceKnotEntity> {
 
         for (int i = 0; i <= STEPS; i++) {
             float shade = i % 2 == 0 ? 1.0F : 0.7F;
-            addVertex(vc, m, cx[i] + perpU.x * HALF_THICKNESS, cy[i] + perpU.y * HALF_THICKNESS, cz[i] + perpU.z * HALF_THICKNESS, shade, lights[i]);
-            addVertex(vc, m, cx[i] - perpU.x * HALF_THICKNESS, cy[i] - perpU.y * HALF_THICKNESS, cz[i] - perpU.z * HALF_THICKNESS, shade, lights[i]);
+            addVertex(vc, m, cx[i] + perpUx * HALF_THICKNESS, cy[i] + perpUy * HALF_THICKNESS, cz[i] + perpUz * HALF_THICKNESS, shade, lights[i]);
+            addVertex(vc, m, cx[i] - perpUx * HALF_THICKNESS, cy[i] - perpUy * HALF_THICKNESS, cz[i] - perpUz * HALF_THICKNESS, shade, lights[i]);
         }
         for (int i = STEPS; i >= 0; i--) {
             float shade = i % 2 == 0 ? 1.0F : 0.7F;
-            addVertex(vc, m, cx[i] + perpV.x * HALF_THICKNESS, cy[i] + perpV.y * HALF_THICKNESS, cz[i] + perpV.z * HALF_THICKNESS, shade, lights[i]);
-            addVertex(vc, m, cx[i] - perpV.x * HALF_THICKNESS, cy[i] - perpV.y * HALF_THICKNESS, cz[i] - perpV.z * HALF_THICKNESS, shade, lights[i]);
+            addVertex(vc, m, cx[i] + perpVx * HALF_THICKNESS, cy[i] + perpVy * HALF_THICKNESS, cz[i] + perpVz * HALF_THICKNESS, shade, lights[i]);
+            addVertex(vc, m, cx[i] - perpVx * HALF_THICKNESS, cy[i] - perpVy * HALF_THICKNESS, cz[i] - perpVz * HALF_THICKNESS, shade, lights[i]);
         }
         flushLeash(buffer);
     }

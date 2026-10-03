@@ -44,6 +44,15 @@ public class FenceKnotEntity extends LeashFenceKnotEntity {
     private static final EntityDataAccessor<Optional<UUID>> DATA_PENDING_PLAYER =
             SynchedEntityData.defineId(FenceKnotEntity.class, EntityDataSerializers.OPTIONAL_UUID);
 
+    /**
+     * 伙伴列表的解析结果缓存：实体的同步数据里存的是 CompoundTag，
+     * 而 getPartners() 每 tick 一次、每帧还被裁剪与渲染各调一次，
+     * 每次都反序列化会持续产生垃圾。这里按“同步数据里的 tag 实例”做失效判断：
+     * 同一个实例就直接返回缓存，set/网络同步都会换成新实例，于是会自动重新解析。
+     */
+    private CompoundTag cachedPartnersTag;
+    private Map<BlockPos, Boolean> cachedPartners = Map.of();
+
     public FenceKnotEntity(EntityType<? extends FenceKnotEntity> entityType, Level level) {
         super(entityType, level);
     }
@@ -62,7 +71,12 @@ public class FenceKnotEntity extends LeashFenceKnotEntity {
     // ====== 伙伴连接(每条记录伙伴栅栏 -> 是否消耗过拴绳) ======
 
     public Map<BlockPos, Boolean> getPartners() {
-        return deserializePartners(this.getEntityData().get(DATA_PARTNERS));
+        CompoundTag tag = this.getEntityData().get(DATA_PARTNERS);
+        if (tag != this.cachedPartnersTag) {
+            this.cachedPartnersTag = tag;
+            this.cachedPartners = deserializePartners(tag);
+        }
+        return this.cachedPartners;
     }
 
     public boolean hasPartners() {
@@ -70,13 +84,14 @@ public class FenceKnotEntity extends LeashFenceKnotEntity {
     }
 
     public void setPartner(BlockPos partner, boolean consumed) {
-        Map<BlockPos, Boolean> partners = this.getPartners();
+        // 复制一份再改，避免动到 getPartners() 返回的缓存
+        Map<BlockPos, Boolean> partners = new LinkedHashMap<>(this.getPartners());
         partners.put(partner, consumed);
         this.getEntityData().set(DATA_PARTNERS, serializePartners(partners));
     }
 
     public boolean removePartner(BlockPos partner) {
-        Map<BlockPos, Boolean> partners = this.getPartners();
+        Map<BlockPos, Boolean> partners = new LinkedHashMap<>(this.getPartners());
         if (partners.remove(partner) == null) {
             return false;
         }
