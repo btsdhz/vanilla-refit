@@ -19,6 +19,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * 取消的位置是"构造提示文本"这一条指令, 发生在 startRiding(玩家已经坐上去)
  * 之后、也是该数据包处理的最后一段; 取消它只会跳过这条提示本身(叠加提示与
  * 旁白), 不影响乘客挂载。座位数据包是一次性的, 玩家装好就完事。
+ *
+ * require = 0: 这里的目标只是"少一条提示", 属于装饰性修改。原版改动方法签名时
+ * 注入点找不到是小事, 不该让整局游戏崩掉; 找不到就退化成原版行为(提示重新出现)。
  */
 @Mixin(ClientPacketListener.class)
 public abstract class SitDismountHintMixin {
@@ -29,7 +32,8 @@ public abstract class SitDismountHintMixin {
                     target = "Lnet/minecraft/network/chat/Component;translatable(Ljava/lang/String;[Ljava/lang/Object;)Lnet/minecraft/network/chat/MutableComponent;"
             ),
             cancellable = true,
-            remap = false
+            remap = false,
+            require = 0
     )
     private void btsdhz$skipDismountHintForSeat(CallbackInfo ci, @Local(ordinal = 1) Entity passenger) {
         if (passenger instanceof SitEntity) {
