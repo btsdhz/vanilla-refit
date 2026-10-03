@@ -17,9 +17,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(LevelChunk.class)
 public abstract class LevelChunkPostProcessMixin {
 
+    @Inject(method = "postProcessGeneration", at = @At("HEAD"), remap = false)
+    private void btsdhz_original$beginPostProcess(CallbackInfo ci) {
+        PaneConnection.beginPostProcess();
+    }
+
     @Inject(method = "postProcessGeneration", at = @At("RETURN"), remap = false)
-    private void btsdhz_original$refreshPanes(CallbackInfo ci) {
+    private void btsdhz_original$refreshPanesAtEnd(CallbackInfo ci) {
         LevelChunk self = (LevelChunk) (Object) this;
-        PaneConnection.refreshChunk(self, self.getLevel());
+        if (PaneConnection.endPostProcess()) {
+            PaneConnection.refreshChunk(self, self.getLevel());
+        }
     }
 }

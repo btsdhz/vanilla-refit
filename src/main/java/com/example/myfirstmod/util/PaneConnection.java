@@ -49,11 +49,37 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
  */
 public final class PaneConnection {
 
+    /**
+     * 是否正处在区块后处理这一次调用里（LevelChunkPostProcessMixin 会在方法前后开关）。
+     * 后处理的时机是“区块被提升为 tick 中”，从磁盘加载的区块也会走，所以不能用它来当
+     * “这块区块是新生成的”判据；这里改成记录“本次后处理有没有真的碰到我们的方块”，
+     * 只有碰到了才需要做后面的收敛，普通加载就完全不额外做事。
+     */
+    private static boolean inPostProcess;
+    private static boolean touchedPane;
+
     private PaneConnection() {
+    }
+
+    /** 区块后处理开始（由 LevelChunkPostProcessMixin 调用）。 */
+    public static void beginPostProcess() {
+        inPostProcess = true;
+        touchedPane = false;
+    }
+
+    /** 区块后处理结束；返回本次是否处理过玻璃板/铁栏杆（由 LevelChunkPostProcessMixin 调用）。 */
+    public static boolean endPostProcess() {
+        boolean touched = touchedPane;
+        inPostProcess = false;
+        touchedPane = false;
+        return touched;
     }
 
     /** 按当前周围环境重算玻璃板的 12 个部件属性；不是本模组支持的玻璃板时原样返回。 */
     public static BlockState update(BlockState state, BlockGetter level, BlockPos pos) {
+        if (inPostProcess) {
+            touchedPane = true;
+        }
         if (!PaneCornerSupport.isSupportedPane(state)
                 || !state.hasProperty(ModBlockStateProperties.PANE_NORTH_EAST)
                 || !(state.getBlock() instanceof IronBarsBlock pane)) {
@@ -380,10 +406,12 @@ public final class PaneConnection {
         if (seeds.isEmpty()) {
             return;
         }
-        Set<BlockPos> queued = new HashSet<>();
+        // inQueue 只用来避免同一个位置在队列里重复排队；出队后会移除，
+        // 这样某个方块在它之后又被邻居改动影响时还能再算一次，做到真正的收敛。
+        Set<BlockPos> inQueue = new HashSet<>();
         Deque<BlockPos> queue = new ArrayDeque<>();
         for (BlockPos pos : seeds) {
-            if (queued.add(pos)) {
+            if (inQueue.add(pos)) {
                 queue.add(pos);
             }
         }
@@ -392,6 +420,7 @@ public final class PaneConnection {
         BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
         while (!queue.isEmpty() && budget-- > 0) {
             BlockPos pos = queue.poll();
+            inQueue.remove(pos);
             BlockState state = level.getBlockState(pos);
             if (!PaneCornerSupport.isSupportedPane(state)) {
                 continue;
@@ -404,7 +433,7 @@ public final class PaneConnection {
             level.setBlock(pos, next, 2 | 16);
             for (Direction direction : Direction.values()) {
                 BlockPos neighbor = mutable.setWithOffset(pos, direction).immutable();
-                if (level.getBlockState(neighbor).getBlock() instanceof IronBarsBlock && queued.add(neighbor)) {
+                if (level.getBlockState(neighbor).getBlock() instanceof IronBarsBlock && inQueue.add(neighbor)) {
                     queue.add(neighbor);
                 }
             }
