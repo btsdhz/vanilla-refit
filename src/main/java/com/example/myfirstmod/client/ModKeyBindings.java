@@ -30,6 +30,12 @@ public final class ModKeyBindings {
 
     public static void register(RegisterKeyMappingsEvent event) {
         event.register(CRAWL_KEY);
+        // 之前漏注册了 SIT_KEY: 按键不在注册表里时 consumeClick() 永远为 false,
+        // 也不能在设置里改键, 坐下按键等于失效。
+        event.register(SIT_KEY);
+        // 原版的按键查表是在 Options.load() 里建的, 模组按键注册在它之后,
+        // 这里补一次刷新, 让本模组的按键也能收到点击事件。
+        KeyMapping.resetMapping();
     }
 
     public static boolean isCrawlDown() {

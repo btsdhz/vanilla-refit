@@ -5,8 +5,12 @@ import com.example.myfirstmod.ModEntities;
 import com.example.myfirstmod.block.MixedSlabBlock;
 import com.example.myfirstmod.client.renderer.FenceKnotRenderer;
 import com.example.myfirstmod.client.renderer.SitEntityRenderer;
+import com.example.myfirstmod.entity.SitEntity;
+import com.example.myfirstmod.mixin.GuiAccessor;
+import com.example.myfirstmod.network.CrawlStatePayload;
 import com.example.myfirstmod.network.SitTogglePayload;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Pose;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -18,6 +22,7 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 @EventBusSubscriber(modid = BtsdhzOriginal.MOD_ID, value = Dist.CLIENT)
 public final class ModClientEvents {
     private static boolean crawlPoseApplied;
+    private static boolean crawlStateSent;
 
     private ModClientEvents() {
     }
@@ -33,12 +38,23 @@ public final class ModClientEvents {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) {
             MixedSlabBlock.cachedPlayer = null;
+            crawlPoseApplied = false;
+            crawlStateSent = false;
             return;
         }
         MixedSlabBlock.cachedPlayer = mc.player;
 
         if (mc.screen == null && ModKeyBindings.consumeSit()) {
             PacketDistributor.sendToServer(new SitTogglePayload());
+        }
+
+        // 原版会在乘客数据包里提示"按 Shift 脱离"; 我们的座位是按键切换下车,
+        // 潜行键按不动, 这条提示会一直挂着误导人。上车那一 tick 发完就抹掉。
+        if (mc.player.getVehicle() instanceof SitEntity
+                && mc.gui instanceof GuiAccessor gui
+                && gui.btsdhz$getOverlayMessageString() != null
+                && gui.btsdhz$getOverlayMessageString().getString().equals(dismountHintText())) {
+            gui.btsdhz$setOverlayMessageString(null);
         }
 
         boolean wantCrawl = ModKeyBindings.isCrawlDown()
@@ -52,9 +68,23 @@ public final class ModClientEvents {
         if (wantCrawl) {
             mc.player.setForcedPose(Pose.SWIMMING);
             crawlPoseApplied = true;
+            // 爬行时不能冲刺, 否则会叠加游泳冲刺的速度, 视角也会莫名抖动。
+            mc.player.setSprinting(false);
         } else if (crawlPoseApplied) {
             mc.player.setForcedPose(null);
             crawlPoseApplied = false;
         }
+
+        // 把爬行状态同步给服务端: 否则服务端仍按站立姿态算眼高,
+        // 射箭/投掷物会从站立高度飞出去, 别的玩家也看不到爬行模型。
+        if (wantCrawl != crawlStateSent) {
+            crawlStateSent = wantCrawl;
+            PacketDistributor.sendToServer(new CrawlStatePayload(wantCrawl));
+        }
+    }
+
+    private static String dismountHintText() {
+        return Component.translatable("mount.onboard",
+                Minecraft.getInstance().options.keyShift.getTranslatedKeyMessage()).getString();
     }
 }

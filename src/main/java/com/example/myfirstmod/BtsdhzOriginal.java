@@ -3,6 +3,7 @@ package com.example.myfirstmod;
 import com.example.myfirstmod.client.ModKeyBindings;
 import com.example.myfirstmod.client.SlabbedModelEvents;
 import com.example.myfirstmod.config.BtsdhzConfig;
+import com.example.myfirstmod.network.CrawlStatePayload;
 import com.example.myfirstmod.network.SitTogglePayload;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.api.distmarker.Dist;
@@ -43,10 +44,16 @@ public class BtsdhzOriginal {
     }
 
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
-        event.registrar("1").playToServer(
-                SitTogglePayload.TYPE,
-                SitTogglePayload.STREAM_CODEC,
-                SitTogglePayload::handle
-        );
+        event.registrar("1")
+                .playToServer(
+                        SitTogglePayload.TYPE,
+                        SitTogglePayload.STREAM_CODEC,
+                        SitTogglePayload::handle
+                )
+                .playToServer(
+                        CrawlStatePayload.TYPE,
+                        CrawlStatePayload.STREAM_CODEC,
+                        CrawlStatePayload::handle
+                );
     }
 }

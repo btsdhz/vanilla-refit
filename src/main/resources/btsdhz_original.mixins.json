@@ -25,12 +25,14 @@
     "LeadItemMixin",
     "AnvilMenuMixin",
     "PlayerSitMixin",
-    "PlayerEyeHeightMixin"
+    "PlayerEyeHeightMixin",
+    "PlayerCrawlPoseMixin"
   ],
   "client": [
     "TorchParticleMixin",
     "RedstoneTorchParticleMixin",
-    "MultiPlayerGameModeMixin"
+    "MultiPlayerGameModeMixin",
+    "GuiAccessor"
   ],
   "server": [
   ],
