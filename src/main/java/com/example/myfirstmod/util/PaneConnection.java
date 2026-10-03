@@ -6,6 +6,7 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.CrossCollisionBlock;
 import net.minecraft.world.level.block.IronBarsBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 
 /**
  * 玻璃板的自动连接逻辑（直接覆盖原版那套“只设置东西南北”的逻辑）。
@@ -14,14 +15,15 @@ import net.minecraft.world.level.block.state.BlockState;
  * 也就是靠前的规则会覆盖靠后的规则）：
  *  1. 周围什么都没有 → 12 个属性全为 false（原版那根棍）。这是所有规则的起点，不需要特判；
  *  2. 某个水平方向有方块（判定与原版 IronBarsBlock 完全一致）→ 该方向的上半与下半都为真；
- *  3. 下方有方块 → 东南西北四个方向的下半部分全为真（下半就是原版的东西南北属性）；
- *     目前暂时停用，代码在 update() 里注释保留，方便随时恢复；
- *  4. 上方有方块 → 东南西北四个方向的上半部分全为真；同样暂时停用；
  *  5. 上方和下方都有方块 → 四个角（东南/西南/东北/西北）一律为假；
  *  6. 相邻两个方向都是玻璃板 → 对应那个角为真
  *     （东+南=东南、南+西=西南、北+东=东北、北+西=西北），优先级最低。
+ * 另外有一条优先级刚好介于 5 和 6 之间的规则：
+ *  某个相邻玻璃板朝向本角的那一侧竖片（上半或下半）为真时，本角为假。
+ *  例如北边那块玻璃板的“东上/东下”任意一个为真 → 本块的东北为假；
+ *  它“西上/西下”任意一个为真 → 本块的西北为假；南/东/西三个方向同理。
  *
- * 所以代码里按 6 → 5 → 4 → 3 → 2 的顺序套用：先按最低优先级的角，再让高优先级的规则覆盖它。
+ * 所以代码里按 6 → 新规则 → 5 → 2 的顺序套用：先算优先级最低的角，再让优先级更高的规则覆盖它。
  */
 public final class PaneConnection {
 
@@ -49,7 +51,42 @@ public final class PaneConnection {
         boolean hasAbove = hasBlock(level, pos.above());
         boolean hasBelow = hasBlock(level, pos.below());
 
-        // ===== 规则 5：上下都有方块 → 四个角一律为假（覆盖规则 6）=====
+        // ===== 新规则（优先级介于 6 与 5 之间）：相邻玻璃板朝本角的竖片为真 → 本角为假 =====
+        if (paneNorth) {
+            // 北边那块玻璃板朝东（上或下）为真 → 本块东北为假；朝西为真 → 本块西北为假
+            if (hasSidePiece(level, pos.north(), Direction.EAST)) {
+                northEast = false;
+            }
+            if (hasSidePiece(level, pos.north(), Direction.WEST)) {
+                northWest = false;
+            }
+        }
+        if (paneSouth) {
+            if (hasSidePiece(level, pos.south(), Direction.EAST)) {
+                southEast = false;
+            }
+            if (hasSidePiece(level, pos.south(), Direction.WEST)) {
+                southWest = false;
+            }
+        }
+        if (paneEast) {
+            if (hasSidePiece(level, pos.east(), Direction.NORTH)) {
+                northEast = false;
+            }
+            if (hasSidePiece(level, pos.east(), Direction.SOUTH)) {
+                southEast = false;
+            }
+        }
+        if (paneWest) {
+            if (hasSidePiece(level, pos.west(), Direction.NORTH)) {
+                northWest = false;
+            }
+            if (hasSidePiece(level, pos.west(), Direction.SOUTH)) {
+                southWest = false;
+            }
+        }
+
+        // ===== 规则 5：上下都有方块 → 四个角一律为假（覆盖规则 6 与新规则）=====
         if (hasAbove && hasBelow) {
             northEast = false;
             southEast = false;
@@ -57,16 +94,7 @@ public final class PaneConnection {
             northWest = false;
         }
 
-        // ===== 规则 3 / 4：暂时注释掉，先只保留规则 2、5、6 =====
-        // 规则 4：上方有方块 → 四个上半全真；规则 3：下方有方块 → 四个下半全真
-        // boolean northLower = hasBelow;
-        // boolean eastLower = hasBelow;
-        // boolean southLower = hasBelow;
-        // boolean westLower = hasBelow;
-        // boolean northUpper = hasAbove;
-        // boolean eastUpper = hasAbove;
-        // boolean southUpper = hasAbove;
-        // boolean westUpper = hasAbove;
+        // ===== 竖直面片：先全假，只有规则 2 会点亮 =====
         boolean northLower = false;
         boolean eastLower = false;
         boolean southLower = false;
@@ -117,6 +145,26 @@ public final class PaneConnection {
     /** 该位置是不是“有方块”（非空气就算，含流体）。 */
     private static boolean hasBlock(BlockGetter level, BlockPos pos) {
         return !level.getBlockState(pos).isAir();
+    }
+
+    /**
+     * 指定位置那块玻璃板在 direction 方向的竖片是否启用（上半或下半任意一个为真）。
+     * 例如 direction=EAST 时看的就是它的 east 与 btsdhz_east_up。
+     */
+    private static boolean hasSidePiece(BlockGetter level, BlockPos panePos, Direction direction) {
+        BlockState state = level.getBlockState(panePos);
+        return switch (direction) {
+            case NORTH -> isOn(state, CrossCollisionBlock.NORTH, ModBlockStateProperties.PANE_NORTH_UP);
+            case EAST -> isOn(state, CrossCollisionBlock.EAST, ModBlockStateProperties.PANE_EAST_UP);
+            case SOUTH -> isOn(state, CrossCollisionBlock.SOUTH, ModBlockStateProperties.PANE_SOUTH_UP);
+            case WEST -> isOn(state, CrossCollisionBlock.WEST, ModBlockStateProperties.PANE_WEST_UP);
+            default -> false;
+        };
+    }
+
+    private static boolean isOn(BlockState state, Property<Boolean> lower, Property<Boolean> upper) {
+        return (state.hasProperty(lower) && state.getValue(lower))
+                || (state.hasProperty(upper) && state.getValue(upper));
     }
 
     /** 与原版 IronBarsBlock 相同的连接判定：邻居是玻璃板/铁栏杆、墙，或该面是完整实心面。 */
