@@ -11,6 +11,7 @@
     "StairBlockMixin",
     "IronBarsBlockMixin",
     "GlassPaneCornerMixin",
+    "BlockStatePostProcessMixin",
     "BlockOnSlabStateMixin",
     "TorchOnSlabMixin",
     "LanternOnSlabMixin",
