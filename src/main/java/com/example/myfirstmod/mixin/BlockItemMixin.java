@@ -46,14 +46,12 @@ public abstract class BlockItemMixin {
         if (!SlabSupport.isSupportedSlab(block)) {
             return;
         }
-        // 该玩家的台阶放置逻辑切到了原版：整段交给原版处理。
-        if (PlacementModeState.slab(context.getPlayer()) == PlacementMode.VANILLA) {
-            return;
-        }
 
         Level level = context.getLevel();
         BlockPos clickedPos = context.getClickedPos();
         Direction clickedFace = context.getClickedFace();
+        // 台阶切到原版放置逻辑时：不再竖放，但“混合半砖”（不同材质填进空余半砖空间）仍然保留。
+        boolean vanillaMode = PlacementModeState.slab(context.getPlayer()) == PlacementMode.VANILLA;
         // 创造模式：不消耗物品
         Player player = context.getPlayer();
         boolean creative = player != null && player.getAbilities().instabuild;
@@ -61,12 +59,17 @@ public abstract class BlockItemMixin {
         // ---- 0. 统一的“半砖填充”判定：点击面朝向某个半砖的空余半砖空间时，
         //        在该格填入半砖（同材质→DOUBLE，不同材质→混合）。 ----
         BlockState targetAtPos = level.getBlockState(clickedPos);
-        if (MixedSlabPlacement.tryFill(level, clickedPos, targetAtPos, block, clickedFace)) {
+        if (MixedSlabPlacement.tryFill(level, clickedPos, targetAtPos, block, clickedFace, vanillaMode)) {
             if (!creative) {
                 stack.shrink(1);
             }
             cir.setReturnValue(InteractionResult.SUCCESS);
             cir.cancel();
+            return;
+        }
+
+        // 原版模式：不竖放，剩下的（同材质合成整块等）交给原版。
+        if (vanillaMode) {
             return;
         }
 

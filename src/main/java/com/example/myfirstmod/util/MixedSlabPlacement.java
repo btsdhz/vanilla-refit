@@ -41,16 +41,25 @@ public final class MixedSlabPlacement {
      */
     public static boolean tryFill(Level level, BlockPos clickedPos, BlockState targetState, Block block,
                                   Direction clickedFace) {
+        return tryFill(level, clickedPos, targetState, block, clickedFace, false);
+    }
+
+    /**
+     * @param mixedOnly 只处理“不同材质的混合半砖”。原版放置逻辑下用它保留混合模式：
+     *                  同材质合成整块（DOUBLE）本来就是原版行为，交回原版即可，不必我们插手。
+     */
+    public static boolean tryFill(Level level, BlockPos clickedPos, BlockState targetState, Block block,
+                                  Direction clickedFace, boolean mixedOnly) {
         // 情形 A：点击半砖本体，点击面朝向它的空余半砖空间（点了“朝空余空间的那一面”）
         if (isDirectFillable(targetState, clickedFace)) {
-            return fill(level, clickedPos, targetState, block);
+            return fill(level, clickedPos, targetState, block, mixedOnly);
         }
         // 情形 B：点击相邻方块、且该面朝向一个有空余半砖空间的半砖格
         BlockPos neighborPos = clickedPos.relative(clickedFace);
         if (!neighborPos.equals(clickedPos)) {
             BlockState sideState = level.getBlockState(neighborPos);
             if (isNeighborFillable(sideState)) {
-                return fill(level, neighborPos, sideState, block);
+                return fill(level, neighborPos, sideState, block, mixedOnly);
             }
         }
         return false;
@@ -78,13 +87,17 @@ public final class MixedSlabPlacement {
     }
 
     /** 在该格填入半砖：同材质→DOUBLE，不同材质→混合。 */
-    private static boolean fill(Level level, BlockPos pos, BlockState targetState, Block block) {
+    private static boolean fill(Level level, BlockPos pos, BlockState targetState, Block block, boolean mixedOnly) {
         int existing = orientationOf(targetState);
         if (existing < 0) {
             return false;
         }
         boolean sameMaterial = targetState.getBlock() == block;
         if (sameMaterial) {
+            // 原版模式只负责“混合”；同材质合成整块交给原版（原版本来就会这么做）。
+            if (mixedOnly) {
+                return false;
+            }
             // 同材质：原版 DOUBLE
             BlockState doubleState = targetState.setValue(SlabBlock.TYPE, SlabType.DOUBLE)
                     .setValue(ModBlockStateProperties.FLUID_TYPE, FluidType.NONE)
