@@ -16,14 +16,15 @@ import net.minecraft.world.level.block.state.properties.Property;
  * | 编号 | 状态 | 规则 |
  * | --- | --- | --- |
  * | 1 | 启用（最高） | 水平面 8 个方向（东南西北 + 东北/东南/西北/西南）全是玻璃板 → 四个角全为真，8 个竖直面片全为假 |
- * | 2 | 启用 | 本块上方和下方都没有玻璃板时：某两个方向以及它们之间的斜角都有“原版会和玻璃板连接的方块”（玻璃板/铁栏杆、墙，或朝本块那一面是完整实心面）→ 对应角为真（例：北 + 西 + 西北都有这种方块 → 本块西北为真；东南/东北/西南同理） |
- * | 3 | 启用 | 某个方向两侧的角同时为真 → 该方向的上半与下半为假（东北 + 西北 → 北上下；东南 + 西南 → 南；东北 + 东南 → 东；西北 + 西南 → 西） |
- * | 4 | 启用 | 相邻玻璃板的斜对角面片传播到本角（北邻的南西 + 本块西边是玻璃板 → 本块西北为真；北邻的南东 + 东边是玻璃板 → 本块东北为真；南/东/西同理） |
- * | 5 | 启用 | 某个水平方向有方块（判定与原版 IronBarsBlock 完全一致）、且通过邻居玻璃板限制时：上方有方块 → 该方向上半置真，下方有方块 → 该方向下半置真；只置真，不会把没方块的那一半置假 |
- * | 6 | 启用 | 任意一个角为真 → 8 个竖直面片全为假 |
- * | 7 | 启用 | 某个水平方向有方块（判定与原版一致）、且通过邻居玻璃板限制 → 该方向的上半与下半都为真 |
+ * | 2 | 启用 | 本块上方和下方都没有玻璃板时：某两个方向以及它们之间的斜角**都有玻璃板** → 对应角为真 |
+ * | 3 | 启用 | 本块上方和下方都没有玻璃板时：某两个方向**都有“原版会和玻璃板连接的方块”**（玻璃板/铁栏杆、墙，或朝本块那一面是完整实心面）→ 对应角为真；只看东西南北，不看四个斜角 |
+ * | 4 | 启用 | 某个方向两侧的角同时为真 → 该方向的上半与下半为假 |
+ * | 5 | 启用 | 相邻玻璃板的斜对角面片传播到本角 |
+ * | 6 | 启用 | 某个水平方向有方块（原版判定）、且通过邻居玻璃板限制时：上方有方块 → 该方向上半置真，下方有方块 → 该方向下半置真；只置真，不会把没方块的那一半置假 |
+ * | 7 | 启用 | 任意一个角为真 → 8 个竖直面片全为假 |
+ * | 8 | 启用 | 某个水平方向有方块（原版判定）、且通过邻居玻璃板限制 → 该方向的上半与下半都为真 |
  *
- * 规则 5、7 的邻居玻璃板限制（限制的是“对应方向上的那块玻璃板”，不是当前这块）：
+ * 规则 6、8 的邻居玻璃板限制（对象是“对应方向上的那块玻璃板”，不是当前这块）：
  *  - 邻居不是玻璃板（墙、完整方块等）：不检测，直接通过；
  *  - 邻居是玻璃板但它四个角（东北/东南/西北/西南）全是假：不检测，直接通过；
  *  - 邻居是玻璃板且四个角有任意一个为真：才去检测它朝向本块的那一侧
@@ -31,8 +32,8 @@ import net.minecraft.world.level.block.state.properties.Property;
  *
  * 起点（不属于上面任何一条）：12 个属性先全部置为假，周围什么都没有时就是原版那根棍。
  *
- * 实现说明：规则 3、5、6 都要读四角属性，所以代码里先算完四角（规则 4 → 规则 2 → 规则 1 的角部分），
- * 再算竖直面片（规则 7 → 6 → 5 → 3 → 规则 1 的竖直部分）。优先级只决定“写同一个属性时谁赢”，
+ * 实现说明：规则 4、6、7 都要读四角属性，所以代码里先算完四角（规则 5 → 3 → 2 → 规则 1 的角部分），
+ * 再算竖直面片（规则 8 → 7 → 6 → 4 → 规则 1 的竖直部分）。优先级只决定“写同一个属性时谁赢”，
  * 角属性与竖直面片是两组不同的属性，先算角不改变优先级结果。
  */
 public final class PaneConnection {
@@ -57,26 +58,20 @@ public final class PaneConnection {
         boolean paneNorthWest = isPaneAt(level, pos, -1, -1);
         boolean paneSouthWest = isPaneAt(level, pos, -1, 1);
 
-        // 规则 2 用的四个斜角：是不是“原版玻璃板会连接的方块”
-        boolean linkNorthEast = diagonalConnects(pane, level, pos, 1, -1);
-        boolean linkSouthEast = diagonalConnects(pane, level, pos, 1, 1);
-        boolean linkNorthWest = diagonalConnects(pane, level, pos, -1, -1);
-        boolean linkSouthWest = diagonalConnects(pane, level, pos, -1, 1);
-
         boolean hasAbove = hasBlock(level, pos.above());
         boolean hasBelow = hasBlock(level, pos.below());
-        // 规则 2 的前提：本块上方和下方都没有玻璃板
+        // 规则 2 / 规则 3 的前提：本块上方和下方都没有玻璃板
         boolean noPaneAboveOrBelow = !isPaneAt(level, pos.above()) && !isPaneAt(level, pos.below());
         // 规则 1 的判定：水平面 8 个方向全是玻璃板
         boolean surroundedByPanes = paneNorth && paneEast && paneSouth && paneWest
                 && paneNorthEast && paneSouthEast && paneNorthWest && paneSouthWest;
 
-        // 规则 5 / 规则 7 都要用：某个水平方向有没有方块（判定与原版一致）
+        // 规则 3 / 6 / 8 都要用：某个水平方向有没有“原版会连接的方块”（判定与原版 attachsTo 一致）
         boolean connectNorth = connectsTo(pane, level, pos, Direction.NORTH);
         boolean connectEast = connectsTo(pane, level, pos, Direction.EAST);
         boolean connectSouth = connectsTo(pane, level, pos, Direction.SOUTH);
         boolean connectWest = connectsTo(pane, level, pos, Direction.WEST);
-        // 规则 5 / 规则 7 的邻居玻璃板限制
+        // 规则 6 / 规则 8 的邻居玻璃板限制
         boolean faceNorth = connectNorth && neighbourFacesBack(level, pos, Direction.NORTH);
         boolean faceEast = connectEast && neighbourFacesBack(level, pos, Direction.EAST);
         boolean faceSouth = connectSouth && neighbourFacesBack(level, pos, Direction.SOUTH);
@@ -88,7 +83,7 @@ public final class PaneConnection {
         boolean southWest = false;
         boolean northWest = false;
 
-        // ----- 规则 4：相邻玻璃板的斜对角面片传播到本角 -----
+        // ----- 规则 5：相邻玻璃板的斜对角面片传播到本角 -----
         if (paneNorth) {
             BlockState north = level.getBlockState(pos.north());
             if (paneWest && isOn(north, ModBlockStateProperties.PANE_SOUTH_WEST)) {
@@ -126,18 +121,34 @@ public final class PaneConnection {
             }
         }
 
-        // ----- 规则 2：上下都没有玻璃板时，两个方向 + 它们之间的斜角都有会连接的方块 → 该角为真 -----
+        // ----- 规则 3：上下都没有玻璃板时，两个方向都有会连接的方块 → 该角为真（不看斜角）-----
         if (noPaneAboveOrBelow) {
-            if (connectNorth && connectEast && linkNorthEast) {
+            if (connectNorth && connectEast) {
                 northEast = true;
             }
-            if (connectSouth && connectEast && linkSouthEast) {
+            if (connectSouth && connectEast) {
                 southEast = true;
             }
-            if (connectNorth && connectWest && linkNorthWest) {
+            if (connectNorth && connectWest) {
                 northWest = true;
             }
-            if (connectSouth && connectWest && linkSouthWest) {
+            if (connectSouth && connectWest) {
+                southWest = true;
+            }
+        }
+
+        // ----- 规则 2：上下都没有玻璃板时，两个方向 + 它们之间的斜角都有玻璃板 → 该角为真 -----
+        if (noPaneAboveOrBelow) {
+            if (paneNorth && paneEast && paneNorthEast) {
+                northEast = true;
+            }
+            if (paneSouth && paneEast && paneSouthEast) {
+                southEast = true;
+            }
+            if (paneNorth && paneWest && paneNorthWest) {
+                northWest = true;
+            }
+            if (paneSouth && paneWest && paneSouthWest) {
                 southWest = true;
             }
         }
@@ -160,7 +171,7 @@ public final class PaneConnection {
         boolean southUpper = false;
         boolean westUpper = false;
 
-        // ----- 规则 7（最低优先级）：该方向有方块 → 上下两半都为真 -----
+        // ----- 规则 8（最低优先级）：该方向有方块且通过邻居限制 → 上下两半都为真 -----
         if (faceNorth) {
             northLower = true;
             northUpper = true;
@@ -178,7 +189,7 @@ public final class PaneConnection {
             westUpper = true;
         }
 
-        // ----- 规则 6：任意一个角为真 → 8 个竖直面片全为假 -----
+        // ----- 规则 7：任意一个角为真 → 8 个竖直面片全为假 -----
         if (northEast || southEast || southWest || northWest) {
             northLower = false;
             eastLower = false;
@@ -190,7 +201,7 @@ public final class PaneConnection {
             westUpper = false;
         }
 
-        // ----- 规则 5：该方向有方块时，上方有方块则该方向上安置真、下方有方块则下安置真（只加真）-----
+        // ----- 规则 6：该方向有方块时，上方有方块则该方向上安置真、下方有方块则下安置真（只加真）-----
         if (faceNorth) {
             if (hasAbove) {
                 northUpper = true;
@@ -224,7 +235,7 @@ public final class PaneConnection {
             }
         }
 
-        // ----- 规则 3：某个方向两侧的角同时为真 → 该方向上下两半为假 -----
+        // ----- 规则 4：某个方向两侧的角同时为真 → 该方向上下两半为假 -----
         if (northEast && northWest) {
             northLower = false;
             northUpper = false;
@@ -279,20 +290,6 @@ public final class PaneConnection {
         return isPaneAt(level, pos.offset(dx, 0, dz));
     }
 
-    /**
-     * 斜角（dx, 0, dz）位置的方块是不是“原版玻璃板会连接的方块”：
-     * 玻璃板/铁栏杆、墙，或者它朝本块那一侧的两个面之一是完整实心面（口径与原版 attachsTo 一致）。
-     */
-    private static boolean diagonalConnects(IronBarsBlock pane, BlockGetter level, BlockPos pos, int dx, int dz) {
-        BlockPos diagonalPos = pos.offset(dx, 0, dz);
-        BlockState diagonal = level.getBlockState(diagonalPos);
-        Direction faceOnX = dx > 0 ? Direction.WEST : Direction.EAST;
-        Direction faceOnZ = dz > 0 ? Direction.NORTH : Direction.SOUTH;
-        boolean solid = diagonal.isFaceSturdy(level, diagonalPos, faceOnX)
-                || diagonal.isFaceSturdy(level, diagonalPos, faceOnZ);
-        return pane.attachsTo(diagonal, solid);
-    }
-
     /** 该位置是不是玻璃板。 */
     private static boolean isPaneAt(BlockGetter level, BlockPos pos) {
         return level.getBlockState(pos).getBlock() instanceof IronBarsBlock;
@@ -308,7 +305,7 @@ public final class PaneConnection {
     }
 
     /**
-     * 规则 5、7 的邻居玻璃板限制：限制的是“对应方向上的那块玻璃板”。
+     * 规则 6、8 的邻居玻璃板限制：限制的是“对应方向上的那块玻璃板”。
      * 邻居不是玻璃板时不检测；邻居是玻璃板但四个角全是假时也不检测；
      * 只有邻居玻璃板有任意一个角为真时，才去检测它朝向本块的那一侧
      * （本方向的反方向）上半或下半是否为真。
