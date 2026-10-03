@@ -1,12 +1,23 @@
 package com.example.myfirstmod.util;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.SectionPos;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.CrossCollisionBlock;
 import net.minecraft.world.level.block.IronBarsBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 
 /**
  * 玻璃板的自动连接逻辑（直接覆盖原版那套“只设置东西南北”的逻辑）。
@@ -354,5 +365,76 @@ public final class PaneConnection {
         BlockPos neighborPos = pos.relative(direction);
         BlockState neighbor = level.getBlockState(neighborPos);
         return pane.attachsTo(neighbor, neighbor.isFaceSturdy(level, neighborPos, direction.getOpposite()));
+    }
+
+    /**
+     * 世界生成结束后，把一个区块里参与部件化的玻璃板/铁栏杆刷到稳定状态。
+     *
+     * 原版的后处理（LevelChunk.postProcessGeneration）只对每个标记过的位置按任意顺序调用一次
+     * updateFromNeighbourShapes，而本模组的规则会读邻居的属性，所以顺序不对时，先算的方块是在
+     * “邻居还没修正”的基础上算出来的，之后就再也不会更新（表现就是部分铁栏杆没被更新，要手动
+     * 在旁边放个方块才刷新）。这里按队列做一次局部收敛：谁的状态变了，就把它的邻居再算一遍。
+     */
+    public static void refreshChunk(LevelChunk chunk, Level level) {
+        List<BlockPos> seeds = collectPanesInChunk(chunk);
+        if (seeds.isEmpty()) {
+            return;
+        }
+        Set<BlockPos> queued = new HashSet<>();
+        Deque<BlockPos> queue = new ArrayDeque<>();
+        for (BlockPos pos : seeds) {
+            if (queued.add(pos)) {
+                queue.add(pos);
+            }
+        }
+        // 安全上限，避免极端形状下反复互相触发
+        int budget = seeds.size() * 8 + 64;
+        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
+        while (!queue.isEmpty() && budget-- > 0) {
+            BlockPos pos = queue.poll();
+            BlockState state = level.getBlockState(pos);
+            if (!PaneCornerSupport.isSupportedPane(state)) {
+                continue;
+            }
+            BlockState next = update(state, level, pos);
+            if (next == state) {
+                continue;
+            }
+            // 16 = UPDATE_KNOWN_SHAPE：跳过原版的邻居形状级联，改由本方法的队列收敛
+            level.setBlock(pos, next, 2 | 16);
+            for (Direction direction : Direction.values()) {
+                BlockPos neighbor = mutable.setWithOffset(pos, direction).immutable();
+                if (level.getBlockState(neighbor).getBlock() instanceof IronBarsBlock && queued.add(neighbor)) {
+                    queue.add(neighbor);
+                }
+            }
+        }
+    }
+
+    /** 收集区块里所有参与部件化的玻璃板/铁栏杆；先用 section 的调色板过滤，避免整块扫描。 */
+    private static List<BlockPos> collectPanesInChunk(LevelChunk chunk) {
+        List<BlockPos> result = new ArrayList<>();
+        LevelChunkSection[] sections = chunk.getSections();
+        ChunkPos chunkPos = chunk.getPos();
+        for (int index = 0; index < sections.length; index++) {
+            LevelChunkSection section = sections[index];
+            if (section == null || section.hasOnlyAir()
+                    || !section.getStates().maybeHas(state -> state.getBlock() instanceof IronBarsBlock)) {
+                continue;
+            }
+            int baseY = SectionPos.sectionToBlockCoord(chunk.getMinSection() + index);
+            for (int y = 0; y < 16; y++) {
+                for (int z = 0; z < 16; z++) {
+                    for (int x = 0; x < 16; x++) {
+                        BlockState state = section.getBlockState(x, y, z);
+                        if (PaneCornerSupport.isSupportedPane(state)) {
+                            result.add(new BlockPos(chunkPos.getMinBlockX() + x, baseY + y,
+                                    chunkPos.getMinBlockZ() + z));
+                        }
+                    }
+                }
+            }
+        }
+        return result;
     }
 }

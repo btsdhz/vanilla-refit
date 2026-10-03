@@ -12,6 +12,7 @@
     "IronBarsBlockMixin",
     "GlassPaneCornerMixin",
     "BlockStatePostProcessMixin",
+    "LevelChunkPostProcessMixin",
     "BlockOnSlabStateMixin",
     "TorchOnSlabMixin",
     "LanternOnSlabMixin",
