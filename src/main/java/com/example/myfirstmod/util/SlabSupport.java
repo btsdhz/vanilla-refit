@@ -1,5 +1,7 @@
 package com.example.myfirstmod.util;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.BlockGetter;
@@ -147,17 +149,25 @@ public final class SlabSupport {
     }
 
     /**
+     * 位移后的形状只由方块状态决定（调用点传进来的都是该状态对应的固定形状表项），
+     * 而 getShape / getCollisionShape / getOcclusionShape 是碰撞与准星射线的高频路径，
+     * 每次 {@code move} 都会新建一个形状，所以这里按状态缓存一份。
+     */
+    private static final Map<BlockState, VoxelShape> DOWN_SHIFTED_SHAPES = new ConcurrentHashMap<>();
+    private static final Map<BlockState, VoxelShape> UP_SHIFTED_SHAPES = new ConcurrentHashMap<>();
+
+    /**
      * 把方块形状整体下移半格（8/16 单位），用于“放在下台阶上并贴齐”的方块。
      */
-    public static VoxelShape shiftDownHalf(VoxelShape shape) {
-        return shape.move(0.0, -0.5, 0.0);
+    public static VoxelShape shiftDownHalf(BlockState state, VoxelShape shape) {
+        return DOWN_SHIFTED_SHAPES.computeIfAbsent(state, key -> shape.move(0.0, -0.5, 0.0));
     }
 
     /**
      * 把方块形状整体上移半格（8/16 单位），用于“放在上台阶下方并贴齐”的方块。
      */
-    public static VoxelShape shiftUpHalf(VoxelShape shape) {
-        return shape.move(0.0, 0.5, 0.0);
+    public static VoxelShape shiftUpHalf(BlockState state, VoxelShape shape) {
+        return UP_SHIFTED_SHAPES.computeIfAbsent(state, key -> shape.move(0.0, 0.5, 0.0));
     }
 
     /**

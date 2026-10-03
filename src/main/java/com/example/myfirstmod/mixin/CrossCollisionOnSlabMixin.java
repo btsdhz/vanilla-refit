@@ -53,8 +53,8 @@ public abstract class CrossCollisionOnSlabMixin {
     /** 贴下台阶则下移半格，贴上台阶下方则上移半格；不贴台阶返回 null（保持原版形状）。 */
     private static VoxelShape shiftForSlab(BlockState state, VoxelShape shape) {
         if (SlabSupport.isOnSlab(state)) {
-            return SlabSupport.shiftDownHalf(shape);
+            return SlabSupport.shiftDownHalf(state, shape);
         }
-        return SlabSupport.isUnderTopSlab(state) ? SlabSupport.shiftUpHalf(shape) : null;
+        return SlabSupport.isUnderTopSlab(state) ? SlabSupport.shiftUpHalf(state, shape) : null;
     }
 }

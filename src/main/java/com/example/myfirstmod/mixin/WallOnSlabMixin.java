@@ -116,9 +116,9 @@ public abstract class WallOnSlabMixin {
             return null;
         }
         if (onSlab) {
-            return SlabSupport.shiftDownHalf(base);
+            return SlabSupport.shiftDownHalf(state, base);
         }
-        return underTopSlab ? SlabSupport.shiftUpHalf(base) : base;
+        return underTopSlab ? SlabSupport.shiftUpHalf(state, base) : base;
     }
 
     // 交互形状：下台阶上的墙下移半格、上台阶下的墙上移半格（与位移后的模型对齐）

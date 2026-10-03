@@ -111,11 +111,8 @@ public abstract class StairBlockMixin {
             Half half = state.getValue(StairBlock.HALF);
             VoxelShape shape = switch (conn) {
                 case CONN_RIGHT, CONN_LEFT, CONN_DOUBLE -> getConnShape(facing, conn, half);
-                default -> {
-                    VoxelShape s = getLShape(facing);
-                    if (conn != StairConnection.NONE) s = Shapes.or(s, getCornerShape(facing, conn));
-                    yield s;
-                }
+                case BOTTOM, TOP -> getLegacyShape(facing, conn);
+                default -> getLShape(facing);
             };
             cir.setReturnValue(shape);
             cir.cancel();
@@ -156,9 +153,70 @@ public abstract class StairBlockMixin {
         return Direction.WEST;                       // 中心 SW
     }
 
-    // ===== 7. L 形三块（按渲染模型：中心 + 两条臂，空角在对角） =====
+    // ===== 7. 竖楼梯形状表（只由 FACING / 连接形态 / 上下半决定，全部预计算） =====
+    // getShape 是碰撞与准星射线的高频路径，这里避免每次查询都重新 Shapes.or。
+    @Unique
+    private static final Direction[] HORIZONTAL_FACINGS =
+            { Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST };
+    @Unique
+    private static final VoxelShape[] L_SHAPES = new VoxelShape[Direction.values().length];
+    @Unique
+    private static final VoxelShape[] LEGACY_SHAPES =
+            new VoxelShape[Direction.values().length * StairConnection.values().length];
+    @Unique
+    private static final VoxelShape[] CONN_SHAPES = new VoxelShape[Direction.values().length
+            * StairConnection.values().length * Half.values().length];
+
+    static {
+        for (Direction facing : HORIZONTAL_FACINGS) {
+            VoxelShape lShape = buildLShape(facing);
+            L_SHAPES[facing.ordinal()] = lShape;
+            for (StairConnection conn : StairConnection.values()) {
+                if (conn == StairConnection.BOTTOM || conn == StairConnection.TOP) {
+                    LEGACY_SHAPES[legacyIndex(facing, conn)] = Shapes.or(lShape, buildCornerShape(facing, conn));
+                }
+                for (Half half : Half.values()) {
+                    CONN_SHAPES[connIndex(facing, conn, half)] = buildConnShape(facing, conn, half);
+                }
+            }
+        }
+    }
+
+    @Unique
+    private static int legacyIndex(Direction facing, StairConnection conn) {
+        return facing.ordinal() * StairConnection.values().length + conn.ordinal();
+    }
+
+    @Unique
+    private static int connIndex(Direction facing, StairConnection conn, Half half) {
+        return (facing.ordinal() * StairConnection.values().length + conn.ordinal()) * Half.values().length
+                + half.ordinal();
+    }
+
+    /** L 形（普通竖楼梯）形状。 */
     @Unique
     private static VoxelShape getLShape(Direction facing) {
+        VoxelShape shape = L_SHAPES[facing.ordinal()];
+        return shape != null ? shape : L_SHAPES[Direction.NORTH.ordinal()];
+    }
+
+    /** L 形 + 空角补块（旧逻辑的 BOTTOM / TOP 拐角）。 */
+    @Unique
+    private static VoxelShape getLegacyShape(Direction facing, StairConnection conn) {
+        VoxelShape shape = LEGACY_SHAPES[legacyIndex(facing, conn)];
+        return shape != null ? shape : LEGACY_SHAPES[legacyIndex(Direction.NORTH, conn)];
+    }
+
+    /** 单/双大面连接的形状。 */
+    @Unique
+    private static VoxelShape getConnShape(Direction facing, StairConnection conn, Half half) {
+        VoxelShape shape = CONN_SHAPES[connIndex(facing, conn, half)];
+        return shape != null ? shape : Shapes.empty();
+    }
+
+    // ===== 7b. L 形三块（按渲染模型：中心 + 两条臂，空角在对角） =====
+    @Unique
+    private static VoxelShape buildLShape(Direction facing) {
         switch (facing) {
             case EAST:  // 中心 NE，空 SW，臂 {W,S}
                 return Shapes.or(
@@ -185,7 +243,7 @@ public abstract class StairBlockMixin {
 
     // ===== 8. 空角补块（BOTTOM=下半 y0~8，TOP=上半 y8~16） =====
     @Unique
-    private static VoxelShape getCornerShape(Direction facing, StairConnection conn) {
+    private static VoxelShape buildCornerShape(Direction facing, StairConnection conn) {
         int y0 = (conn == StairConnection.BOTTOM) ? 0 : 8;
         int y1 = y0 + 8;
         switch (facing) {
@@ -198,7 +256,7 @@ public abstract class StairBlockMixin {
 
     // ===== 8b. 单/双大面连接碰撞箱（与 vertical_stair_conn_* 模型元素一一对应） =====
     @Unique
-    private static VoxelShape getConnShape(Direction facing, StairConnection conn, Half half) {
+    private static VoxelShape buildConnShape(Direction facing, StairConnection conn, Half half) {
         return switch (conn) {
             case CONN_RIGHT -> Shapes.or(
                     rotateBox(facing, half, 0, 0, 0, 16, 16, 8),   // 前段整体

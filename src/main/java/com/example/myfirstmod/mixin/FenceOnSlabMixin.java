@@ -101,9 +101,9 @@ public abstract class FenceOnSlabMixin {
             return;
         }
         if (SlabSupport.isOnSlab(state)) {
-            cir.setReturnValue(SlabSupport.shiftDownHalf(shape));
+            cir.setReturnValue(SlabSupport.shiftDownHalf(state, shape));
         } else if (SlabSupport.isUnderTopSlab(state)) {
-            cir.setReturnValue(SlabSupport.shiftUpHalf(shape));
+            cir.setReturnValue(SlabSupport.shiftUpHalf(state, shape));
         }
     }
 
