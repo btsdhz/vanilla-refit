@@ -24,9 +24,9 @@ import net.minecraft.world.level.block.state.properties.Property;
  * | 7 | 启用 | 某个水平方向有方块（判定与原版一致）、且通过邻居玻璃板限制 → 该方向的上半与下半都为真 |
  *
  * 规则 5、7 的补充限制：邻居不是玻璃板（墙、完整方块等）时不受限制；
- * 邻居是玻璃板时，下面两条要同时满足：
- *   - 它朝向本块的那一侧（本方向的反方向）上半或下半有一个为真；
- *   - 它的四个角（东北/东南/西北/西南）有任意一个为真。
+ * 邻居是玻璃板（“对应方向的玻璃板”，不是当前这块）时，两条要同时满足：
+ *   - 先决条件：它的四个角（东北/东南/西北/西南）有任意一个为真，否则整条判断不启用；
+ *   - 再判断：它朝向本块的那一侧（本方向的反方向）上半或下半有一个为真。
  * 注意第一条是双向的：两块玻璃板相邻时双方都在等对方先点亮，因此玻璃板之间不会出现横杆，
  * 只有在邻居是墙/完整方块（不受限制）或其中一侧由其它规则先点亮时才会出现。
  *
@@ -290,22 +290,25 @@ public final class PaneConnection {
 
     /**
      * 规则 5、7 的补充限制：该方向的邻居不是玻璃板时直接通过；
-     * 邻居是玻璃板时，要求它朝向本块的那一侧上半/下半有一个为真，并且它自己有任意一个角为真。
+     * 邻居是玻璃板时，先要求它自己有任意一个角为真（否则不启用这条判断），
+     * 再要求它朝向本块的那一侧（本方向的反方向）上半或下半有一个为真。
      */
     private static boolean neighbourFacesBack(BlockGetter level, BlockPos pos, Direction direction) {
         BlockState neighbour = level.getBlockState(pos.relative(direction));
         if (!(neighbour.getBlock() instanceof IronBarsBlock)) {
             return true;
         }
-        Direction facing = direction.getOpposite();
-        boolean facesBack = isOn(neighbour, lowerProperty(facing)) || isOn(neighbour, upperProperty(facing));
-        if (!facesBack) {
-            return false;
-        }
-        return isOn(neighbour, ModBlockStateProperties.PANE_NORTH_EAST)
+        // 先决条件：邻居那块玻璃板的四个角有任意一个为真
+        boolean neighbourHasCorner = isOn(neighbour, ModBlockStateProperties.PANE_NORTH_EAST)
                 || isOn(neighbour, ModBlockStateProperties.PANE_SOUTH_EAST)
                 || isOn(neighbour, ModBlockStateProperties.PANE_NORTH_WEST)
                 || isOn(neighbour, ModBlockStateProperties.PANE_SOUTH_WEST);
+        if (!neighbourHasCorner) {
+            return false;
+        }
+        // 再判断：它朝向本块那一侧的上半或下半是否为真
+        Direction facing = direction.getOpposite();
+        return isOn(neighbour, lowerProperty(facing)) || isOn(neighbour, upperProperty(facing));
     }
 
     /** 某个水平方向的“下半”属性（原版属性）。 */
