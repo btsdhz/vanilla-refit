@@ -11,21 +11,19 @@ import net.minecraft.world.level.block.state.properties.Property;
 /**
  * 玻璃板的自动连接逻辑（直接覆盖原版那套“只设置东西南北”的逻辑）。
  *
- * ===== 当前规则状况（优先级从高到低，靠前的覆盖靠后的；代码执行顺序与之相反）=====
- *  规则 0（启用，优先级最高，排在规则 1 之前）：
- *      水平面 8 个方向（东南西北 + 东北/东南/西北/西南）全是玻璃板
+ * ===== 当前规则（按优先级从高到低；靠前的会覆盖靠后的，代码里按相反顺序执行）=====
+ *  规则 1（启用，优先级最高）：水平面 8 个方向（东南西北 + 东北/东南/西北/西南）全是玻璃板
  *      → 四个角全为真，东南西北各自的上下（8 个竖直面片）全为假。
  *  规则 2（启用）：某个水平方向有方块（判定与原版 IronBarsBlock 完全一致：
  *      玻璃板/铁栏杆、墙，或该面是完整实心面）→ 该方向的上半与下半都为真。
- *  规则 5.5（启用，但当前不会改变任何值）：相邻玻璃板朝向本角的竖片
- *      （上半或下半任意一个）为真时本角为假。规则 6 停用后角初始就是假，这条暂时无效，
- *      等规则 6 恢复后才会起作用。
- *  规则 5（已注释停用）：上方和下方都有方块 → 四个角一律为假。
- *  规则 6（已注释停用）：相邻两个方向都是玻璃板 → 对应角为真。
- *  规则 1（起点，不需要特判）：12 个属性先全部置为假，周围什么都没有时就是原版那根棍。
- *  规则 3、4：已删除。
+ *  规则 3（启用，但当前不改变任何值）：相邻玻璃板朝向本角的竖片
+ *      （上半或下半任意一个）为真时本角为假。规则 5 停用后角初始就是假，这条暂时无效，
+ *      等规则 5 恢复后才会起作用。
+ *  规则 4（停用，代码保留）：上方和下方都有方块 → 四个角一律为假。
+ *  规则 5（停用，代码保留）：相邻两个方向都是玻璃板 → 对应角为真。
+ *  起点（不属于上面任何一条）：12 个属性先全部置为假，周围什么都没有时就是原版那根棍。
  *
- * 每次改规则都要同步更新这份清单，并在回复里列出当前状况。
+ * 每次改规则都要同步更新这份清单，并在回复里列出当前规则。
  */
 public final class PaneConnection {
 
@@ -45,7 +43,7 @@ public final class PaneConnection {
         boolean paneSouth = isPane(level, pos, Direction.SOUTH);
         boolean paneWest = isPane(level, pos, Direction.WEST);
 
-        // ===== 规则 6（已注释停用）：相邻两个方向都是玻璃板 → 角为真 =====
+        // ===== 规则 5（停用，代码保留）：相邻两个方向都是玻璃板 → 角为真 =====
         // boolean northEast = paneNorth && paneEast;
         // boolean southEast = paneSouth && paneEast;
         // boolean southWest = paneSouth && paneWest;
@@ -55,7 +53,7 @@ public final class PaneConnection {
         boolean southWest = false;
         boolean northWest = false;
 
-        // ===== 规则 5.5：相邻玻璃板朝本角的竖片为真 → 本角为假 =====
+        // ===== 规则 3：相邻玻璃板朝本角的竖片为真 → 本角为假 =====
         if (paneNorth) {
             // 北边那块玻璃板朝东（上或下）为真 → 本块东北为假；朝西为真 → 本块西北为假
             if (hasSidePiece(level, pos.north(), Direction.EAST)) {
@@ -90,7 +88,7 @@ public final class PaneConnection {
             }
         }
 
-        // ===== 规则 5（已注释停用）：上下都有方块 → 四个角一律为假 =====
+        // ===== 规则 4（停用，代码保留）：上下都有方块 → 四个角一律为假 =====
         // boolean hasAbove = hasBlock(level, pos.above());
         // boolean hasBelow = hasBlock(level, pos.below());
         // if (hasAbove && hasBelow) {
@@ -128,7 +126,7 @@ public final class PaneConnection {
             westUpper = true;
         }
 
-        // ===== 规则 0（优先级最高）：水平面 8 个方向全是玻璃板
+        // ===== 规则 1（优先级最高）：水平面 8 个方向全是玻璃板
         //       → 四个角全为真，东南西北的上下（8 个竖直面片）全为假 =====
         if (paneNorth && paneEast && paneSouth && paneWest
                 && isPaneAt(level, pos, 1, -1)
@@ -174,7 +172,7 @@ public final class PaneConnection {
         return level.getBlockState(pos.offset(dx, 0, dz)).getBlock() instanceof IronBarsBlock;
     }
 
-    /** 该位置是不是“有方块”（非空气就算，含流体）。规则 5 使用，随规则 5 一起停用。 */
+    /** 该位置是不是“有方块”（非空气就算，含流体）。规则 4 使用，随规则 4 一起停用。 */
     @SuppressWarnings("unused")
     private static boolean hasBlock(BlockGetter level, BlockPos pos) {
         return !level.getBlockState(pos).isAir();
