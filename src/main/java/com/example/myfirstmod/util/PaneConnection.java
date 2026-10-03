@@ -16,8 +16,8 @@ import net.minecraft.world.level.block.state.properties.Property;
  * | 编号 | 状态 | 规则 |
  * | --- | --- | --- |
  * | 1 | 启用（最高） | 水平面 8 个方向（东南西北 + 东北/东南/西北/西南）全是玻璃板 → 四个角全为真，8 个竖直面片全为假 |
- * | 2 | 启用 | 本块上方和下方都没有玻璃板时：某两个方向以及它们之间的斜角**都有玻璃板** → 对应角为真 |
- * | 3 | 启用 | 本块上方和下方都没有玻璃板时：某两个方向**都有“原版会和玻璃板连接的方块”**（玻璃板/铁栏杆、墙，或朝本块那一面是完整实心面）→ 对应角为真；只看东西南北，不看四个斜角 |
+ * | 2 | 启用 | 本块上方和下方都没有方块时：某两个方向以及它们之间的斜角**都有玻璃板** → 对应角为真 |
+ * | 3 | 启用 | 本块上方和下方都没有方块时：某两个方向**都有“原版会和玻璃板连接的方块”**（玻璃板/铁栏杆、墙，或朝本块那一面是完整实心面）→ 对应角为真；只看东西南北，不看四个斜角 |
  * | 4 | 启用 | 某个方向两侧的角同时为真 → 该方向的上半与下半为假 |
  * | 5 | 启用 | 相邻玻璃板的斜对角面片传播到本角：某方向的邻居是玻璃板、它的斜对角面片（朝向本块那一侧的角）为真，并且**本块侧边那个方向是“原版会和玻璃板连接的方块”**时，本块对应的角为真 |
  * | 6 | 启用 | 某个水平方向有方块（原版判定）、且通过邻居玻璃板限制时：上方有方块 → 该方向上半置真，下方有方块 → 该方向下半置真；只置真，不会把没方块的那一半置假 |
@@ -60,8 +60,8 @@ public final class PaneConnection {
 
         boolean hasAbove = hasBlock(level, pos.above());
         boolean hasBelow = hasBlock(level, pos.below());
-        // 规则 2 / 规则 3 的前提：本块上方和下方都没有玻璃板
-        boolean noPaneAboveOrBelow = !isPaneAt(level, pos.above()) && !isPaneAt(level, pos.below());
+        // 规则 2 / 规则 3 的前提：本块上方和下方都没有方块（都是空气）
+        boolean noBlockAboveOrBelow = !hasBlock(level, pos.above()) && !hasBlock(level, pos.below());
         // 规则 1 的判定：水平面 8 个方向全是玻璃板
         boolean surroundedByPanes = paneNorth && paneEast && paneSouth && paneWest
                 && paneNorthEast && paneSouthEast && paneNorthWest && paneSouthWest;
@@ -122,8 +122,8 @@ public final class PaneConnection {
             }
         }
 
-        // ----- 规则 3：上下都没有玻璃板时，两个方向都有会连接的方块 → 该角为真（不看斜角）-----
-        if (noPaneAboveOrBelow) {
+        // ----- 规则 3：上下都没有方块时，两个方向都有会连接的方块 → 该角为真（不看斜角）-----
+        if (noBlockAboveOrBelow) {
             if (connectNorth && connectEast) {
                 northEast = true;
             }
@@ -138,8 +138,8 @@ public final class PaneConnection {
             }
         }
 
-        // ----- 规则 2：上下都没有玻璃板时，两个方向 + 它们之间的斜角都有玻璃板 → 该角为真 -----
-        if (noPaneAboveOrBelow) {
+        // ----- 规则 2：上下都没有方块时，两个方向 + 它们之间的斜角都有玻璃板 → 该角为真 -----
+        if (noBlockAboveOrBelow) {
             if (paneNorth && paneEast && paneNorthEast) {
                 northEast = true;
             }
