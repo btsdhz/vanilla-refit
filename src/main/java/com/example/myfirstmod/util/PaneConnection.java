@@ -23,12 +23,11 @@ import net.minecraft.world.level.block.state.properties.Property;
  * | 6 | 启用 | 任意一个角为真 → 8 个竖直面片全为假 |
  * | 7 | 启用 | 某个水平方向有方块（判定与原版一致）、且通过邻居玻璃板限制 → 该方向的上半与下半都为真 |
  *
- * 规则 5、7 的补充限制：邻居不是玻璃板（墙、完整方块等）时不受限制；
- * 邻居是玻璃板（“对应方向的玻璃板”，不是当前这块）时，两条要同时满足：
- *   - 先决条件：它的四个角（东北/东南/西北/西南）有任意一个为真，否则整条判断不启用；
- *   - 再判断：它朝向本块的那一侧（本方向的反方向）上半或下半有一个为真。
- * 注意第一条是双向的：两块玻璃板相邻时双方都在等对方先点亮，因此玻璃板之间不会出现横杆，
- * 只有在邻居是墙/完整方块（不受限制）或其中一侧由其它规则先点亮时才会出现。
+ * 规则 5、7 的邻居玻璃板限制（限制的是“对应方向上的那块玻璃板”，不是当前这块）：
+ *  - 邻居不是玻璃板（墙、完整方块等）：不检测，直接通过；
+ *  - 邻居是玻璃板但它四个角（东北/东南/西北/西南）全是假：不检测，直接通过；
+ *  - 邻居是玻璃板且四个角有任意一个为真：才去检测它朝向本块的那一侧
+ *    （本方向的反方向）上半或下半是否为真，为真才通过。
  *
  * 起点（不属于上面任何一条）：12 个属性先全部置为假，周围什么都没有时就是原版那根棍。
  *
@@ -71,7 +70,7 @@ public final class PaneConnection {
         boolean connectEast = connectsTo(pane, level, pos, Direction.EAST);
         boolean connectSouth = connectsTo(pane, level, pos, Direction.SOUTH);
         boolean connectWest = connectsTo(pane, level, pos, Direction.WEST);
-        // 规则 5 / 规则 7 的补充限制：邻居是玻璃板时，它必须也朝向本块
+        // 规则 5 / 规则 7 的邻居玻璃板限制
         boolean faceNorth = connectNorth && neighbourFacesBack(level, pos, Direction.NORTH);
         boolean faceEast = connectEast && neighbourFacesBack(level, pos, Direction.EAST);
         boolean faceSouth = connectSouth && neighbourFacesBack(level, pos, Direction.SOUTH);
@@ -289,24 +288,23 @@ public final class PaneConnection {
     }
 
     /**
-     * 规则 5、7 的补充限制：该方向的邻居不是玻璃板时直接通过；
-     * 邻居是玻璃板时，先要求它自己有任意一个角为真（否则不启用这条判断），
-     * 再要求它朝向本块的那一侧（本方向的反方向）上半或下半有一个为真。
+     * 规则 5、7 的邻居玻璃板限制：限制的是“对应方向上的那块玻璃板”。
+     * 邻居不是玻璃板时不检测；邻居是玻璃板但四个角全是假时也不检测；
+     * 只有邻居玻璃板有任意一个角为真时，才去检测它朝向本块的那一侧
+     * （本方向的反方向）上半或下半是否为真。
      */
     private static boolean neighbourFacesBack(BlockGetter level, BlockPos pos, Direction direction) {
         BlockState neighbour = level.getBlockState(pos.relative(direction));
         if (!(neighbour.getBlock() instanceof IronBarsBlock)) {
             return true;
         }
-        // 先决条件：邻居那块玻璃板的四个角有任意一个为真
         boolean neighbourHasCorner = isOn(neighbour, ModBlockStateProperties.PANE_NORTH_EAST)
                 || isOn(neighbour, ModBlockStateProperties.PANE_SOUTH_EAST)
                 || isOn(neighbour, ModBlockStateProperties.PANE_NORTH_WEST)
                 || isOn(neighbour, ModBlockStateProperties.PANE_SOUTH_WEST);
         if (!neighbourHasCorner) {
-            return false;
+            return true;
         }
-        // 再判断：它朝向本块那一侧的上半或下半是否为真
         Direction facing = direction.getOpposite();
         return isOn(neighbour, lowerProperty(facing)) || isOn(neighbour, upperProperty(facing));
     }
