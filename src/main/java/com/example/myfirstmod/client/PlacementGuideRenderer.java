@@ -165,13 +165,16 @@ public final class PlacementGuideRenderer {
      * 之前判断整方块时把它用反了（拿方块形状当被减数），导致几乎所有方块都被当成整方块。
      */
     private static boolean isFaceComplete(VoxelShape shape, Direction face, double plane) {
-        VoxelShape fullFace = switch (face) {
-            case UP -> Shapes.box(0.0, plane - FACE_EPS, 0.0, 1.0, plane, 1.0);
-            case DOWN -> Shapes.box(0.0, plane, 0.0, 1.0, plane + FACE_EPS, 1.0);
-            case NORTH -> Shapes.box(0.0, 0.0, plane - FACE_EPS, 1.0, 1.0, plane);
-            case SOUTH -> Shapes.box(0.0, 0.0, plane, 1.0, 1.0, plane + FACE_EPS);
-            case WEST -> Shapes.box(plane - FACE_EPS, 0.0, 0.0, plane, 1.0, 1.0);
-            case EAST -> Shapes.box(plane, 0.0, 0.0, plane + FACE_EPS, 1.0, 1.0);
+        // 薄片必须朝方块“内部”长（正方向的面往负方向让、负方向的面往正方向让）。
+        // 之前按面名硬编码，南北/东西写反了：北面写成 z 从 -0.001 到 0，落在方块外面，
+        // 于是四个侧面全被判成不完整，只有顶/底能画。
+        boolean positive = face.getAxisDirection() == Direction.AxisDirection.POSITIVE;
+        double from = positive ? plane - FACE_EPS : plane;
+        double to = positive ? plane : plane + FACE_EPS;
+        VoxelShape fullFace = switch (face.getAxis()) {
+            case X -> Shapes.box(from, 0.0, 0.0, to, 1.0, 1.0);
+            case Y -> Shapes.box(0.0, from, 0.0, 1.0, to, 1.0);
+            case Z -> Shapes.box(0.0, 0.0, from, 1.0, 1.0, to);
         };
         return !Shapes.joinIsNotEmpty(fullFace, shape, BooleanOp.ONLY_FIRST);
     }
