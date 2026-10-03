@@ -19,9 +19,12 @@ import net.minecraft.world.level.block.state.properties.Property;
  * | 2 | 启用 | 本块上方和下方都没有玻璃板时：某两个方向以及它们之间的斜角都有玻璃板 → 对应角为真（例：北 + 西 + 西北都有玻璃板 → 本块西北为真；东南/东北/西南同理） |
  * | 3 | 启用 | 某个方向两侧的角同时为真 → 该方向的上半与下半为假（东北 + 西北 → 北上下；东南 + 西南 → 南；东北 + 东南 → 东；西北 + 西南 → 西） |
  * | 4 | 启用 | 相邻玻璃板的斜对角面片传播到本角（北邻的南西 + 本块西边是玻璃板 → 本块西北为真；北邻的南东 + 东边是玻璃板 → 本块东北为真；南/东/西同理） |
- * | 5 | 启用 | 某个水平方向有方块（判定与原版 IronBarsBlock 完全一致）时：上方有方块 → 该方向上半置真，下方有方块 → 该方向下半置真；只置真，不会把没方块的那一半置假 |
+ * | 5 | 启用 | 某个水平方向有方块（判定与原版 IronBarsBlock 完全一致）、且邻居若是玻璃板则它也必须朝向本块时：上方有方块 → 该方向上半置真，下方有方块 → 该方向下半置真；只置真，不会把没方块的那一半置假 |
  * | 6 | 启用 | 任意一个角为真 → 8 个竖直面片全为假 |
- * | 7 | 启用 | 某个水平方向有方块（判定与原版一致）→ 该方向的上半与下半都为真 |
+ * | 7 | 启用 | 某个水平方向有方块（判定与原版一致）、且邻居若是玻璃板则它也必须朝向本块 → 该方向的上半与下半都为真 |
+ *
+ * 规则 5、7 的补充限制：邻居不是玻璃板（墙、完整方块等）时不受限制；
+ * 邻居是玻璃板时，要求它朝向本块的那一侧（本方向的反方向）上半或下半有一个为真。
  *
  * 起点（不属于上面任何一条）：12 个属性先全部置为假，周围什么都没有时就是原版那根棍。
  *
@@ -64,6 +67,11 @@ public final class PaneConnection {
         boolean connectEast = connectsTo(pane, level, pos, Direction.EAST);
         boolean connectSouth = connectsTo(pane, level, pos, Direction.SOUTH);
         boolean connectWest = connectsTo(pane, level, pos, Direction.WEST);
+        // 规则 5 / 规则 7 的补充限制：邻居是玻璃板时，它必须也朝向本块
+        boolean faceNorth = connectNorth && neighbourFacesBack(level, pos, Direction.NORTH);
+        boolean faceEast = connectEast && neighbourFacesBack(level, pos, Direction.EAST);
+        boolean faceSouth = connectSouth && neighbourFacesBack(level, pos, Direction.SOUTH);
+        boolean faceWest = connectWest && neighbourFacesBack(level, pos, Direction.WEST);
 
         // ==================== 第一组：四角属性 ====================
         boolean northEast = false;
@@ -144,19 +152,19 @@ public final class PaneConnection {
         boolean westUpper = false;
 
         // ----- 规则 7（最低优先级）：该方向有方块 → 上下两半都为真 -----
-        if (connectNorth) {
+        if (faceNorth) {
             northLower = true;
             northUpper = true;
         }
-        if (connectEast) {
+        if (faceEast) {
             eastLower = true;
             eastUpper = true;
         }
-        if (connectSouth) {
+        if (faceSouth) {
             southLower = true;
             southUpper = true;
         }
-        if (connectWest) {
+        if (faceWest) {
             westLower = true;
             westUpper = true;
         }
@@ -174,7 +182,7 @@ public final class PaneConnection {
         }
 
         // ----- 规则 5：该方向有方块时，上方有方块则该方向上安置真、下方有方块则下安置真（只加真）-----
-        if (connectNorth) {
+        if (faceNorth) {
             if (hasAbove) {
                 northUpper = true;
             }
@@ -182,7 +190,7 @@ public final class PaneConnection {
                 northLower = true;
             }
         }
-        if (connectEast) {
+        if (faceEast) {
             if (hasAbove) {
                 eastUpper = true;
             }
@@ -190,7 +198,7 @@ public final class PaneConnection {
                 eastLower = true;
             }
         }
-        if (connectSouth) {
+        if (faceSouth) {
             if (hasAbove) {
                 southUpper = true;
             }
@@ -198,7 +206,7 @@ public final class PaneConnection {
                 southLower = true;
             }
         }
-        if (connectWest) {
+        if (faceWest) {
             if (hasAbove) {
                 westUpper = true;
             }
@@ -274,6 +282,41 @@ public final class PaneConnection {
 
     private static boolean isOn(BlockState state, Property<Boolean> property) {
         return state.hasProperty(property) && state.getValue(property);
+    }
+
+    /**
+     * 规则 5、7 的补充限制：该方向的邻居不是玻璃板时直接通过；
+     * 邻居是玻璃板时，要求它朝向本块的那一侧（本方向的反方向）上半或下半有一个为真。
+     */
+    private static boolean neighbourFacesBack(BlockGetter level, BlockPos pos, Direction direction) {
+        BlockState neighbour = level.getBlockState(pos.relative(direction));
+        if (!(neighbour.getBlock() instanceof IronBarsBlock)) {
+            return true;
+        }
+        Direction facing = direction.getOpposite();
+        return isOn(neighbour, lowerProperty(facing)) || isOn(neighbour, upperProperty(facing));
+    }
+
+    /** 某个水平方向的“下半”属性（原版属性）。 */
+    private static Property<Boolean> lowerProperty(Direction direction) {
+        return switch (direction) {
+            case NORTH -> CrossCollisionBlock.NORTH;
+            case EAST -> CrossCollisionBlock.EAST;
+            case SOUTH -> CrossCollisionBlock.SOUTH;
+            case WEST -> CrossCollisionBlock.WEST;
+            default -> throw new IllegalArgumentException("不是水平方向: " + direction);
+        };
+    }
+
+    /** 某个水平方向的“上半”属性（本模组属性）。 */
+    private static Property<Boolean> upperProperty(Direction direction) {
+        return switch (direction) {
+            case NORTH -> ModBlockStateProperties.PANE_NORTH_UP;
+            case EAST -> ModBlockStateProperties.PANE_EAST_UP;
+            case SOUTH -> ModBlockStateProperties.PANE_SOUTH_UP;
+            case WEST -> ModBlockStateProperties.PANE_WEST_UP;
+            default -> throw new IllegalArgumentException("不是水平方向: " + direction);
+        };
     }
 
     /** 与原版 IronBarsBlock 相同的连接判定：邻居是玻璃板/铁栏杆、墙，或该面是完整实心面。 */
