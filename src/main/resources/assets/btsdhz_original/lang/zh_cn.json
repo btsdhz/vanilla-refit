@@ -10,8 +10,8 @@
   "key.btsdhz_original.placement_mode": "切换放置逻辑(手持台阶/楼梯)",
   "message.btsdhz_original.placement_mode.slab": "台阶放置逻辑: %s",
   "message.btsdhz_original.placement_mode.stair": "楼梯放置逻辑: %s",
-  "placement_mode.btsdhz_original.mod": "本模组",
-  "placement_mode.btsdhz_original.mod2": "本模组(中央正方形平放)",
-  "placement_mode.btsdhz_original.mod3": "本模组(紧贴面放置)",
+  "placement_mode.btsdhz_original.mod": "默认",
+  "placement_mode.btsdhz_original.mod2": "混合",
+  "placement_mode.btsdhz_original.mod3": "紧贴",
   "placement_mode.btsdhz_original.vanilla": "原版"
 }
