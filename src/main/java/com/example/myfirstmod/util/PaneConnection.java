@@ -18,7 +18,7 @@ import net.minecraft.world.level.block.state.properties.Property;
  * | 1 | 启用（最高） | 水平面 8 个方向（东南西北 + 东北/东南/西北/西南）全是玻璃板 → 四个角全为真，8 个竖直面片全为假 |
  * | 2 | 启用 | 某个方向两侧的角同时为真 → 该方向的上半与下半为假（东北 + 西北 → 北上下为假；东南 + 西南 → 南；东北 + 东南 → 东；西北 + 西南 → 西） |
  * | 3 | 启用 | 相邻玻璃板的斜对角面片传播到本角（北邻的南西 + 本块西边是玻璃板 → 本块西北为真；北邻的南东 + 东边是玻璃板 → 本块东北为真；南/东/西同理） |
- * | 4 | 启用 | 某个水平方向有方块（判定与原版 IronBarsBlock 完全一致）时：上方有方块 → 该方向上半为真，下方有方块 → 该方向下半为真（没有方块的那一半保持假） |
+ * | 4 | 启用 | 某个水平方向有方块（判定与原版 IronBarsBlock 完全一致）时：上方有方块 → 该方向上半置真，下方有方块 → 该方向下半置真；只置真，不会把没方块的那一半置假 |
  * | 5 | 启用 | 任意一个角为真 → 8 个竖直面片全为假 |
  * | 6 | 启用 | 某个水平方向有方块（判定与原版一致）→ 该方向的上半与下半都为真 |
  *
@@ -153,22 +153,38 @@ public final class PaneConnection {
             westUpper = false;
         }
 
-        // ----- 规则 4：该方向有方块时，只有上方/下方真有方块的那一半才为真 -----
+        // ----- 规则 4：该方向有方块时，上方有方块则该方向上半置真、下方有方块则下半置真（只加真）-----
         if (connectNorth) {
-            northLower = hasBelow;
-            northUpper = hasAbove;
+            if (hasAbove) {
+                northUpper = true;
+            }
+            if (hasBelow) {
+                northLower = true;
+            }
         }
         if (connectEast) {
-            eastLower = hasBelow;
-            eastUpper = hasAbove;
+            if (hasAbove) {
+                eastUpper = true;
+            }
+            if (hasBelow) {
+                eastLower = true;
+            }
         }
         if (connectSouth) {
-            southLower = hasBelow;
-            southUpper = hasAbove;
+            if (hasAbove) {
+                southUpper = true;
+            }
+            if (hasBelow) {
+                southLower = true;
+            }
         }
         if (connectWest) {
-            westLower = hasBelow;
-            westUpper = hasAbove;
+            if (hasAbove) {
+                westUpper = true;
+            }
+            if (hasBelow) {
+                westLower = true;
+            }
         }
 
         // ----- 规则 2：某个方向两侧的角同时为真 → 该方向上下两半为假 -----
