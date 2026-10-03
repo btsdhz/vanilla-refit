@@ -5,6 +5,7 @@ import com.example.myfirstmod.client.SlabbedModelEvents;
 import com.example.myfirstmod.config.BtsdhzConfig;
 import com.example.myfirstmod.network.CrawlStatePayload;
 import com.example.myfirstmod.network.PlacementModePayload;
+import com.example.myfirstmod.network.PlacementModeSyncPayload;
 import com.example.myfirstmod.network.SitTogglePayload;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.api.distmarker.Dist;
@@ -60,6 +61,11 @@ public class BtsdhzOriginal {
                         PlacementModePayload.TYPE,
                         PlacementModePayload.STREAM_CODEC,
                         PlacementModePayload::handle
+                )
+                .playToClient(
+                        PlacementModeSyncPayload.TYPE,
+                        PlacementModeSyncPayload.STREAM_CODEC,
+                        PlacementModeSyncPayload::handle
                 );
     }
 }

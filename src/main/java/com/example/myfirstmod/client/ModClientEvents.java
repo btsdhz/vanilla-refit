@@ -20,7 +20,6 @@ import net.minecraft.world.level.block.StairBlock;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
@@ -110,7 +109,7 @@ public final class ModClientEvents {
             newMode = stairMode;
         }
 
-        PlacementModeState.set(mc.player, slabMode, stairMode);
+        PlacementModeState.setClient(mc.player, slabMode, stairMode);
         PacketDistributor.sendToServer(PlacementModePayload.of(slabMode, stairMode));
 
         Component modeName = Component.translatable("placement_mode.btsdhz_original." + newMode.getSerializedName());
@@ -122,12 +121,4 @@ public final class ModClientEvents {
                 false);
     }
 
-    /** 登录时把本地模式同步给服务端, 避免服务端清过状态后与客户端不一致(客户端预测会错)。 */
-    @SubscribeEvent
-    public static void onLoggingIn(ClientPlayerNetworkEvent.LoggingIn event) {
-        PacketDistributor.sendToServer(
-                PlacementModePayload.of(
-                        PlacementModeState.slab(event.getPlayer()),
-                        PlacementModeState.stair(event.getPlayer())));
-    }
 }
