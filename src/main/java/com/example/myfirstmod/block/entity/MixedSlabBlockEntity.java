@@ -114,7 +114,13 @@ public class MixedSlabBlockEntity extends BlockEntity {
         if (id == null || id.isEmpty()) {
             return Blocks.STONE_SLAB;
         }
-        Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(id));
-        return block instanceof SlabBlock ? block : Blocks.STONE_SLAB;
+        try {
+            Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(id));
+            return block instanceof SlabBlock ? block : Blocks.STONE_SLAB;
+        } catch (RuntimeException exception) {
+            // 存档里的 id 可能被写坏、或来自已被移除的方块（解析会抛异常）。
+            // 这里必须兜住，否则区块加载直接崩溃；回退成石头半砖，和“不是半砖就回退”保持一致。
+            return Blocks.STONE_SLAB;
+        }
     }
 }
