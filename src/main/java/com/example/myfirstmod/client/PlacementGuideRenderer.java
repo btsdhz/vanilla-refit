@@ -112,7 +112,8 @@ public final class PlacementGuideRenderer {
         }
         // 原版放置逻辑不画提示线；台阶与楼梯各自成套，互不影响。
         PlacementMode mode = slab ? PlacementModeState.slab(mc.player) : PlacementModeState.stair(mc.player);
-        if (mode == PlacementMode.VANILLA) {
+        // 原版逻辑与逻辑 3（紧贴面放置）都不需要辅助线。
+        if (mode == PlacementMode.VANILLA || mode == PlacementMode.MOD_3) {
             return;
         }
 

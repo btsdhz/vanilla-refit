@@ -18,11 +18,16 @@ public enum PlacementMode implements StringRepresentable {
      * {@code slabCenterSquareRatio}。
      */
     MOD_2("mod2"),
+    /**
+     * 本模组逻辑 3（目前只有台阶）：紧贴点击的那个面放置——
+     * 点顶面放（贴在下面的）平放台阶，点侧面放贴着该侧的竖台阶。不需要辅助线。
+     */
+    MOD_3("mod3"),
     /** 原版逻辑：完全走原版放置。 */
     VANILLA("vanilla");
 
     /** 台阶可选的模式顺序（按切换键轮转）。 */
-    public static final List<PlacementMode> SLAB_ORDER = List.of(MOD, MOD_2, VANILLA);
+    public static final List<PlacementMode> SLAB_ORDER = List.of(MOD, MOD_2, MOD_3, VANILLA);
     /** 楼梯目前还没有逻辑 2。 */
     public static final List<PlacementMode> STAIR_ORDER = List.of(MOD, VANILLA);
 

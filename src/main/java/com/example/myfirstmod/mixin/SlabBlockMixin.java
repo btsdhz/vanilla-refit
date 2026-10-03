@@ -110,8 +110,16 @@ public abstract class SlabBlockMixin {
         Direction clickedFace = context.getClickedFace();
         BlockState newState;
 
+        // 逻辑 3：紧贴点击的那个面放置（点顶面=下台阶，点北面=南竖台阶……）。
+        if (placementMode == PlacementMode.MOD_3) {
+            SlabPlacementRules.Orientation orientation = SlabPlacementRules.flushAgainst(clickedFace);
+            newState = original.setValue(ModBlockStateProperties.MODE, orientation.mode())
+                    .setValue(SlabBlock.TYPE, orientation.type())
+                    .setValue(ModBlockStateProperties.FLUID_TYPE, fluidType)
+                    .setValue(BlockStateProperties.WATERLOGGED, false);
+        }
         // 逻辑 2 下点在中央正方形内时按平放处理（和 BlockItemMixin 的判定一致）。
-        if ((clickedFace == Direction.UP || clickedFace == Direction.DOWN)
+        else if ((clickedFace == Direction.UP || clickedFace == Direction.DOWN)
                 && SlabPlacementRules.wantsVertical(context, placementMode)) {
             Direction facing = getHorizontalDirectionFromClick(context);
             VerticalSlabMode mode;
