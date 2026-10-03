@@ -24,6 +24,10 @@ sourceSets.main.resources {
     // Exclude common development only resources from finalized outputs
     exclude("**/*.bbmodel") // BlockBench project files
 
+    // 目录里用来批量列文件名的辅助脚本, 不是资源; 之前会被打进 jar,
+    // 游戏加载资源包时会报 "Invalid path in pack ... ignoring"。
+    exclude("**/输出本目录全部文件名.bat")
+
     exclude("src/generated/**/.cache") // datagen cache files
 }
 
