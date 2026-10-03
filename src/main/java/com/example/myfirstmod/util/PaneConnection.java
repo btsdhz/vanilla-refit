@@ -19,7 +19,7 @@ import net.minecraft.world.level.block.state.properties.Property;
  * | 2 | 启用 | 本块上方和下方都没有玻璃板时：某两个方向以及它们之间的斜角**都有玻璃板** → 对应角为真 |
  * | 3 | 启用 | 本块上方和下方都没有玻璃板时：某两个方向**都有“原版会和玻璃板连接的方块”**（玻璃板/铁栏杆、墙，或朝本块那一面是完整实心面）→ 对应角为真；只看东西南北，不看四个斜角 |
  * | 4 | 启用 | 某个方向两侧的角同时为真 → 该方向的上半与下半为假 |
- * | 5 | 启用 | 相邻玻璃板的斜对角面片传播到本角 |
+ * | 5 | 启用 | 相邻玻璃板的斜对角面片传播到本角：某方向的邻居是玻璃板、它的斜对角面片（朝向本块那一侧的角）为真，并且**本块侧边那个方向是“原版会和玻璃板连接的方块”**时，本块对应的角为真 |
  * | 6 | 启用 | 某个水平方向有方块（原版判定）、且通过邻居玻璃板限制时：上方有方块 → 该方向上半置真，下方有方块 → 该方向下半置真；只置真，不会把没方块的那一半置假 |
  * | 7 | 启用 | 任意一个角为真 → 8 个竖直面片全为假 |
  * | 8 | 启用 | 某个水平方向有方块（原版判定）、且通过邻居玻璃板限制 → 该方向的上半与下半都为真 |
@@ -84,39 +84,40 @@ public final class PaneConnection {
         boolean northWest = false;
 
         // ----- 规则 5：相邻玻璃板的斜对角面片传播到本角 -----
+        // 侧边那一侧用的是原版连接判定（玻璃板/铁栏杆、墙，或朝本块那一面是完整实心面）
         if (paneNorth) {
             BlockState north = level.getBlockState(pos.north());
-            if (paneWest && isOn(north, ModBlockStateProperties.PANE_SOUTH_WEST)) {
+            if (connectWest && isOn(north, ModBlockStateProperties.PANE_SOUTH_WEST)) {
                 northWest = true;
             }
-            if (paneEast && isOn(north, ModBlockStateProperties.PANE_SOUTH_EAST)) {
+            if (connectEast && isOn(north, ModBlockStateProperties.PANE_SOUTH_EAST)) {
                 northEast = true;
             }
         }
         if (paneSouth) {
             BlockState south = level.getBlockState(pos.south());
-            if (paneWest && isOn(south, ModBlockStateProperties.PANE_NORTH_WEST)) {
+            if (connectWest && isOn(south, ModBlockStateProperties.PANE_NORTH_WEST)) {
                 southWest = true;
             }
-            if (paneEast && isOn(south, ModBlockStateProperties.PANE_NORTH_EAST)) {
+            if (connectEast && isOn(south, ModBlockStateProperties.PANE_NORTH_EAST)) {
                 southEast = true;
             }
         }
         if (paneEast) {
             BlockState east = level.getBlockState(pos.east());
-            if (paneNorth && isOn(east, ModBlockStateProperties.PANE_NORTH_WEST)) {
+            if (connectNorth && isOn(east, ModBlockStateProperties.PANE_NORTH_WEST)) {
                 northEast = true;
             }
-            if (paneSouth && isOn(east, ModBlockStateProperties.PANE_SOUTH_WEST)) {
+            if (connectSouth && isOn(east, ModBlockStateProperties.PANE_SOUTH_WEST)) {
                 southEast = true;
             }
         }
         if (paneWest) {
             BlockState west = level.getBlockState(pos.west());
-            if (paneNorth && isOn(west, ModBlockStateProperties.PANE_NORTH_EAST)) {
+            if (connectNorth && isOn(west, ModBlockStateProperties.PANE_NORTH_EAST)) {
                 northWest = true;
             }
-            if (paneSouth && isOn(west, ModBlockStateProperties.PANE_SOUTH_EAST)) {
+            if (connectSouth && isOn(west, ModBlockStateProperties.PANE_SOUTH_EAST)) {
                 southWest = true;
             }
         }
