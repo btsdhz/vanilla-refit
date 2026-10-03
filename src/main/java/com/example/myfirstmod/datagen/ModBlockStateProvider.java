@@ -194,20 +194,16 @@ public class ModBlockStateProvider extends BlockStateProvider {
                 paneTexture = mcLoc("block/" + textureBase);
                 edgeTexture = mcLoc("block/" + textureBase + "_pane_top");
             }
-            ModelFile corner = models().getBuilder("pane_corner_" + name)
-                    .parent(new ModelFile.UncheckedModelFile(modLoc("block/pane_corner")))
-                    .texture("pane", paneTexture)
-                    .texture("edge", edgeTexture);
-
-            // 四个方向的上/下半各一份模型（基准都是朝北的那一块，其余方向靠 y 旋转）
-            ModelFile sideLower = models().getBuilder("pane_side_lower_" + name)
-                    .parent(new ModelFile.UncheckedModelFile(modLoc("block/pane_side_lower")))
-                    .texture("pane", paneTexture)
-                    .texture("edge", edgeTexture);
-            ModelFile sideUpper = models().getBuilder("pane_side_upper_" + name)
-                    .parent(new ModelFile.UncheckedModelFile(modLoc("block/pane_side_upper")))
-                    .texture("pane", paneTexture)
-                    .texture("edge", edgeTexture);
+            // 每个部件各一份模型。东/西用南/北模型的 90° 旋转（和原版 glass_pane_side 的用法一致），
+            // 不能靠 180/270 度旋转：那会把贴图整体转过去，跟图集里的世界对齐错开（铁栏杆上最明显）。
+            ModelFile cornerNorthEast = panePartModel("pane_corner", name, paneTexture, edgeTexture);
+            ModelFile cornerSouthEast = panePartModel("pane_corner_se", name, paneTexture, edgeTexture);
+            ModelFile cornerSouthWest = panePartModel("pane_corner_sw", name, paneTexture, edgeTexture);
+            ModelFile cornerNorthWest = panePartModel("pane_corner_nw", name, paneTexture, edgeTexture);
+            ModelFile sideLower = panePartModel("pane_side_lower", name, paneTexture, edgeTexture);
+            ModelFile sideLowerAlt = panePartModel("pane_side_lower_alt", name, paneTexture, edgeTexture);
+            ModelFile sideUpper = panePartModel("pane_side_upper", name, paneTexture, edgeTexture);
+            ModelFile sideUpperAlt = panePartModel("pane_side_upper_alt", name, paneTexture, edgeTexture);
 
             MultiPartBlockStateBuilder builder = getMultipartBuilder(block);
             // ===== 默认的“棍” =====
@@ -227,34 +223,43 @@ public class ModBlockStateProvider extends BlockStateProvider {
                 noStick(builder.part().modelFile(noSide).rotationY(270).addModel());
             }
             // ===== 四个方向的上下两半 =====
-            // 下半：原版属性（名字不变，含义改为下半）
+            // 下半：原版属性（名字不变，含义改为下半）；北/东用基准模型，南/西用 _alt 模型
             builder.part().modelFile(sideLower).addModel().condition(CrossCollisionBlock.NORTH, true);
             builder.part().modelFile(sideLower).rotationY(90).addModel().condition(CrossCollisionBlock.EAST, true);
-            builder.part().modelFile(sideLower).rotationY(180).addModel().condition(CrossCollisionBlock.SOUTH, true);
-            builder.part().modelFile(sideLower).rotationY(270).addModel().condition(CrossCollisionBlock.WEST, true);
+            builder.part().modelFile(sideLowerAlt).addModel().condition(CrossCollisionBlock.SOUTH, true);
+            builder.part().modelFile(sideLowerAlt).rotationY(90).addModel().condition(CrossCollisionBlock.WEST, true);
             // 上半：本模组新增的四个属性
             builder.part().modelFile(sideUpper).addModel()
                     .condition(ModBlockStateProperties.PANE_NORTH_UP, true);
             builder.part().modelFile(sideUpper).rotationY(90).addModel()
                     .condition(ModBlockStateProperties.PANE_EAST_UP, true);
-            builder.part().modelFile(sideUpper).rotationY(180).addModel()
+            builder.part().modelFile(sideUpperAlt).addModel()
                     .condition(ModBlockStateProperties.PANE_SOUTH_UP, true);
-            builder.part().modelFile(sideUpper).rotationY(270).addModel()
+            builder.part().modelFile(sideUpperAlt).rotationY(90).addModel()
                     .condition(ModBlockStateProperties.PANE_WEST_UP, true);
-            // ===== 本模组新增：四个角的水平面片 =====
-            builder.part().modelFile(corner).addModel()
+            // ===== 四个角的水平面片：每个角用自己的模型（贴图按各自象限对齐，不做旋转）=====
+            builder.part().modelFile(cornerNorthEast).addModel()
                     .condition(ModBlockStateProperties.PANE_NORTH_EAST, true);
-            builder.part().modelFile(corner).rotationY(90).addModel()
+            builder.part().modelFile(cornerSouthEast).addModel()
                     .condition(ModBlockStateProperties.PANE_SOUTH_EAST, true);
-            builder.part().modelFile(corner).rotationY(180).addModel()
+            builder.part().modelFile(cornerSouthWest).addModel()
                     .condition(ModBlockStateProperties.PANE_SOUTH_WEST, true);
-            builder.part().modelFile(corner).rotationY(270).addModel()
+            builder.part().modelFile(cornerNorthWest).addModel()
                     .condition(ModBlockStateProperties.PANE_NORTH_WEST, true);
         }
     }
 
     private ModelFile paneModel(String path) {
         return new ModelFile.UncheckedModelFile(mcLoc("block/" + path));
+    }
+
+    /** 生成某个部件在某种材质下的子模型：父模型是模组里的手写模板，贴图换成该材质。 */
+    private ModelFile panePartModel(String template, String material, ResourceLocation paneTexture,
+                                    ResourceLocation edgeTexture) {
+        return models().getBuilder(template + "_" + material)
+                .parent(new ModelFile.UncheckedModelFile(modLoc("block/" + template)))
+                .texture("pane", paneTexture)
+                .texture("edge", edgeTexture);
     }
 
     /** 默认那根“棍”的判定：12 个部件属性必须全为 false。 */

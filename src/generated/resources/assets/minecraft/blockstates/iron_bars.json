@@ -57,8 +57,7 @@
     },
     {
       "apply": {
-        "model": "btsdhz_original:block/pane_side_lower_iron_bars",
-        "y": 180
+        "model": "btsdhz_original:block/pane_side_lower_alt_iron_bars"
       },
       "when": {
         "south": "true"
@@ -66,8 +65,8 @@
     },
     {
       "apply": {
-        "model": "btsdhz_original:block/pane_side_lower_iron_bars",
-        "y": 270
+        "model": "btsdhz_original:block/pane_side_lower_alt_iron_bars",
+        "y": 90
       },
       "when": {
         "west": "true"
@@ -92,8 +91,7 @@
     },
     {
       "apply": {
-        "model": "btsdhz_original:block/pane_side_upper_iron_bars",
-        "y": 180
+        "model": "btsdhz_original:block/pane_side_upper_alt_iron_bars"
       },
       "when": {
         "btsdhz_south_up": "true"
@@ -101,8 +99,8 @@
     },
     {
       "apply": {
-        "model": "btsdhz_original:block/pane_side_upper_iron_bars",
-        "y": 270
+        "model": "btsdhz_original:block/pane_side_upper_alt_iron_bars",
+        "y": 90
       },
       "when": {
         "btsdhz_west_up": "true"
@@ -118,8 +116,7 @@
     },
     {
       "apply": {
-        "model": "btsdhz_original:block/pane_corner_iron_bars",
-        "y": 90
+        "model": "btsdhz_original:block/pane_corner_se_iron_bars"
       },
       "when": {
         "btsdhz_se": "true"
@@ -127,8 +124,7 @@
     },
     {
       "apply": {
-        "model": "btsdhz_original:block/pane_corner_iron_bars",
-        "y": 180
+        "model": "btsdhz_original:block/pane_corner_sw_iron_bars"
       },
       "when": {
         "btsdhz_sw": "true"
@@ -136,8 +132,7 @@
     },
     {
       "apply": {
-        "model": "btsdhz_original:block/pane_corner_iron_bars",
-        "y": 270
+        "model": "btsdhz_original:block/pane_corner_nw_iron_bars"
       },
       "when": {
         "btsdhz_nw": "true"

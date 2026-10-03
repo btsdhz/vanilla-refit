@@ -116,8 +116,7 @@
     },
     {
       "apply": {
-        "model": "btsdhz_original:block/pane_side_lower_orange_stained_glass_pane",
-        "y": 180
+        "model": "btsdhz_original:block/pane_side_lower_alt_orange_stained_glass_pane"
       },
       "when": {
         "south": "true"
@@ -125,8 +124,8 @@
     },
     {
       "apply": {
-        "model": "btsdhz_original:block/pane_side_lower_orange_stained_glass_pane",
-        "y": 270
+        "model": "btsdhz_original:block/pane_side_lower_alt_orange_stained_glass_pane",
+        "y": 90
       },
       "when": {
         "west": "true"
@@ -151,8 +150,7 @@
     },
     {
       "apply": {
-        "model": "btsdhz_original:block/pane_side_upper_orange_stained_glass_pane",
-        "y": 180
+        "model": "btsdhz_original:block/pane_side_upper_alt_orange_stained_glass_pane"
       },
       "when": {
         "btsdhz_south_up": "true"
@@ -160,8 +158,8 @@
     },
     {
       "apply": {
-        "model": "btsdhz_original:block/pane_side_upper_orange_stained_glass_pane",
-        "y": 270
+        "model": "btsdhz_original:block/pane_side_upper_alt_orange_stained_glass_pane",
+        "y": 90
       },
       "when": {
         "btsdhz_west_up": "true"
@@ -177,8 +175,7 @@
     },
     {
       "apply": {
-        "model": "btsdhz_original:block/pane_corner_orange_stained_glass_pane",
-        "y": 90
+        "model": "btsdhz_original:block/pane_corner_se_orange_stained_glass_pane"
       },
       "when": {
         "btsdhz_se": "true"
@@ -186,8 +183,7 @@
     },
     {
       "apply": {
-        "model": "btsdhz_original:block/pane_corner_orange_stained_glass_pane",
-        "y": 180
+        "model": "btsdhz_original:block/pane_corner_sw_orange_stained_glass_pane"
       },
       "when": {
         "btsdhz_sw": "true"
@@ -195,8 +191,7 @@
     },
     {
       "apply": {
-        "model": "btsdhz_original:block/pane_corner_orange_stained_glass_pane",
-        "y": 270
+        "model": "btsdhz_original:block/pane_corner_nw_orange_stained_glass_pane"
       },
       "when": {
         "btsdhz_nw": "true"
