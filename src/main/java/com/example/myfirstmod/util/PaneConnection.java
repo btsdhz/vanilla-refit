@@ -11,21 +11,22 @@ import net.minecraft.world.level.block.state.properties.Property;
 /**
  * 玻璃板的自动连接逻辑（直接覆盖原版那套“只设置东西南北”的逻辑）。
  *
- * ===== 当前规则（按优先级从高到低，靠前的会覆盖靠后的；代码里按相反顺序执行）=====
+ * ===== 当前规则（按优先级从高到低，靠前的会覆盖靠后的同名属性）=====
  *
  * | 编号 | 状态 | 规则 |
  * | --- | --- | --- |
  * | 1 | 启用（最高） | 水平面 8 个方向（东南西北 + 东北/东南/西北/西南）全是玻璃板 → 四个角全为真，8 个竖直面片全为假 |
- * | 2 | 启用 | 某个方向两侧的角同时为真 → 该方向的上半与下半为假（例：东北 + 西北 → 北上下为假） |
- * | 3 | 启用 | 相邻玻璃板的斜对角面片传播到本角（北邻的南西 + 本块西边是玻璃板 → 本块西北为真；南东 + 东边 → 东北为真；南/东/西同理） |
- * | 4 | 启用 | 某个水平方向有方块（判定与原版 IronBarsBlock 完全一致：玻璃板/铁栏杆、墙、完整实心面）→ 该方向上半与下半都为真 |
- * | 5 | 启用（当前无效） | 相邻玻璃板朝向本角的竖片（上半或下半）为真 → 本角为假；规则 7 停用后角初始就是假，这条暂时改不动数值 |
- * | 6 | 停用（代码保留） | 上方和下方都有方块 → 四个角一律为假 |
- * | 7 | 停用（代码保留） | 相邻两个方向都是玻璃板 → 对应角为真 |
+ * | 2 | 启用 | 某个方向两侧的角同时为真 → 该方向的上半与下半为假（东北 + 西北 → 北上下为假；东南 + 西南 → 南；东北 + 东南 → 东；西北 + 西南 → 西） |
+ * | 3 | 启用 | 相邻玻璃板的斜对角面片传播到本角（北邻的南西 + 本块西边是玻璃板 → 本块西北为真；北邻的南东 + 东边是玻璃板 → 本块东北为真；南/东/西同理） |
+ * | 4 | 启用 | 某个水平方向有方块（判定与原版 IronBarsBlock 完全一致）时：上方有方块 → 该方向上半为真，下方有方块 → 该方向下半为真（没有方块的那一半保持假） |
+ * | 5 | 启用 | 任意一个角为真 → 8 个竖直面片全为假 |
+ * | 6 | 启用 | 某个水平方向有方块（判定与原版一致）→ 该方向的上半与下半都为真 |
  *
  * 起点（不属于上面任何一条）：12 个属性先全部置为假，周围什么都没有时就是原版那根棍。
  *
- * 每次改规则都要同步更新这份清单，并在回复里列出当前规则。
+ * 实现说明：规则 2、4、5 都要读四角属性，所以代码里先算完四角（规则 3 与规则 1 的角部分），
+ * 再算竖直面片（规则 6 → 5 → 4 → 2 → 规则 1 的竖直部分）。优先级只决定“写同一个属性时谁赢”，
+ * 角属性与竖直面片是两组不同的属性，先算角不改变优先级结果。
  */
 public final class PaneConnection {
 
@@ -44,93 +45,29 @@ public final class PaneConnection {
         boolean paneEast = isPane(level, pos, Direction.EAST);
         boolean paneSouth = isPane(level, pos, Direction.SOUTH);
         boolean paneWest = isPane(level, pos, Direction.WEST);
+        boolean hasAbove = hasBlock(level, pos.above());
+        boolean hasBelow = hasBlock(level, pos.below());
 
-        // ===== 规则 7（停用，代码保留）：相邻两个方向都是玻璃板 → 角为真 =====
-        // boolean northEast = paneNorth && paneEast;
-        // boolean southEast = paneSouth && paneEast;
-        // boolean southWest = paneSouth && paneWest;
-        // boolean northWest = paneNorth && paneWest;
+        // 规则 1 的判定：水平面 8 个方向全是玻璃板
+        boolean surroundedByPanes = paneNorth && paneEast && paneSouth && paneWest
+                && isPaneAt(level, pos, 1, -1)
+                && isPaneAt(level, pos, 1, 1)
+                && isPaneAt(level, pos, -1, -1)
+                && isPaneAt(level, pos, -1, 1);
+
+        // 规则 6 / 规则 4 都要用：某个水平方向有没有方块（判定与原版一致）
+        boolean connectNorth = connectsTo(pane, level, pos, Direction.NORTH);
+        boolean connectEast = connectsTo(pane, level, pos, Direction.EAST);
+        boolean connectSouth = connectsTo(pane, level, pos, Direction.SOUTH);
+        boolean connectWest = connectsTo(pane, level, pos, Direction.WEST);
+
+        // ==================== 第一组：四角属性 ====================
         boolean northEast = false;
         boolean southEast = false;
         boolean southWest = false;
         boolean northWest = false;
 
-        // ===== 规则 5：相邻玻璃板朝本角的竖片为真 → 本角为假 =====
-        if (paneNorth) {
-            // 北边那块玻璃板朝东（上或下）为真 → 本块东北为假；朝西为真 → 本块西北为假
-            if (hasSidePiece(level, pos.north(), Direction.EAST)) {
-                northEast = false;
-            }
-            if (hasSidePiece(level, pos.north(), Direction.WEST)) {
-                northWest = false;
-            }
-        }
-        if (paneSouth) {
-            if (hasSidePiece(level, pos.south(), Direction.EAST)) {
-                southEast = false;
-            }
-            if (hasSidePiece(level, pos.south(), Direction.WEST)) {
-                southWest = false;
-            }
-        }
-        if (paneEast) {
-            if (hasSidePiece(level, pos.east(), Direction.NORTH)) {
-                northEast = false;
-            }
-            if (hasSidePiece(level, pos.east(), Direction.SOUTH)) {
-                southEast = false;
-            }
-        }
-        if (paneWest) {
-            if (hasSidePiece(level, pos.west(), Direction.NORTH)) {
-                northWest = false;
-            }
-            if (hasSidePiece(level, pos.west(), Direction.SOUTH)) {
-                southWest = false;
-            }
-        }
-
-        // ===== 规则 6（停用，代码保留）：上下都有方块 → 四个角一律为假 =====
-        // boolean hasAbove = hasBlock(level, pos.above());
-        // boolean hasBelow = hasBlock(level, pos.below());
-        // if (hasAbove && hasBelow) {
-        //     northEast = false;
-        //     southEast = false;
-        //     southWest = false;
-        //     northWest = false;
-        // }
-
-        // ===== 竖直面片：先全假，只有规则 2 会点亮 =====
-        boolean northLower = false;
-        boolean eastLower = false;
-        boolean southLower = false;
-        boolean westLower = false;
-        boolean northUpper = false;
-        boolean eastUpper = false;
-        boolean southUpper = false;
-        boolean westUpper = false;
-
-        // ===== 规则 4：该方向有方块（判定与原版一致）→ 该方向上下两半都为真 =====
-        if (connectsTo(pane, level, pos, Direction.NORTH)) {
-            northLower = true;
-            northUpper = true;
-        }
-        if (connectsTo(pane, level, pos, Direction.EAST)) {
-            eastLower = true;
-            eastUpper = true;
-        }
-        if (connectsTo(pane, level, pos, Direction.SOUTH)) {
-            southLower = true;
-            southUpper = true;
-        }
-        if (connectsTo(pane, level, pos, Direction.WEST)) {
-            westLower = true;
-            westUpper = true;
-        }
-
-        // ===== 规则 3：相邻玻璃板的斜对角面片传播到本角 =====
-        // 北边玻璃板的南西 → 本块西北；南东 → 本块东北（前提是本块西/东边也有玻璃板）。
-        // 南、东、西三个方向按同样的“斜对角相接”关系映射。
+        // ----- 规则 3：相邻玻璃板的斜对角面片传播到本角 -----
         if (paneNorth) {
             BlockState north = level.getBlockState(pos.north());
             if (paneWest && isOn(north, ModBlockStateProperties.PANE_SOUTH_WEST)) {
@@ -168,8 +105,73 @@ public final class PaneConnection {
             }
         }
 
-        // ===== 规则 2：某个方向两侧的角同时为真 → 该方向的上下两半为假 =====
-        // 例：东北与西北同时为真 → 北上下为假（这一侧的横杆由两侧的角片取代）。
+        // ----- 规则 1（角部分，最高优先级）：8 个方向全是玻璃板 → 四角全真 -----
+        if (surroundedByPanes) {
+            northEast = true;
+            southEast = true;
+            southWest = true;
+            northWest = true;
+        }
+
+        // ==================== 第二组：竖直面片 ====================
+        boolean northLower = false;
+        boolean eastLower = false;
+        boolean southLower = false;
+        boolean westLower = false;
+        boolean northUpper = false;
+        boolean eastUpper = false;
+        boolean southUpper = false;
+        boolean westUpper = false;
+
+        // ----- 规则 6（最低优先级）：该方向有方块 → 上下两半都为真 -----
+        if (connectNorth) {
+            northLower = true;
+            northUpper = true;
+        }
+        if (connectEast) {
+            eastLower = true;
+            eastUpper = true;
+        }
+        if (connectSouth) {
+            southLower = true;
+            southUpper = true;
+        }
+        if (connectWest) {
+            westLower = true;
+            westUpper = true;
+        }
+
+        // ----- 规则 5：任意一个角为真 → 8 个竖直面片全为假 -----
+        if (northEast || southEast || southWest || northWest) {
+            northLower = false;
+            eastLower = false;
+            southLower = false;
+            westLower = false;
+            northUpper = false;
+            eastUpper = false;
+            southUpper = false;
+            westUpper = false;
+        }
+
+        // ----- 规则 4：该方向有方块时，只有上方/下方真有方块的那一半才为真 -----
+        if (connectNorth) {
+            northLower = hasBelow;
+            northUpper = hasAbove;
+        }
+        if (connectEast) {
+            eastLower = hasBelow;
+            eastUpper = hasAbove;
+        }
+        if (connectSouth) {
+            southLower = hasBelow;
+            southUpper = hasAbove;
+        }
+        if (connectWest) {
+            westLower = hasBelow;
+            westUpper = hasAbove;
+        }
+
+        // ----- 规则 2：某个方向两侧的角同时为真 → 该方向上下两半为假 -----
         if (northEast && northWest) {
             northLower = false;
             northUpper = false;
@@ -187,13 +189,8 @@ public final class PaneConnection {
             westUpper = false;
         }
 
-        // ===== 规则 1（优先级最高）：水平面 8 个方向全是玻璃板
-        //       → 四个角全为真，东南西北的上下（8 个竖直面片）全为假 =====
-        if (paneNorth && paneEast && paneSouth && paneWest
-                && isPaneAt(level, pos, 1, -1)
-                && isPaneAt(level, pos, 1, 1)
-                && isPaneAt(level, pos, -1, -1)
-                && isPaneAt(level, pos, -1, 1)) {
+        // ----- 规则 1（竖直部分，最高优先级）：8 个方向全是玻璃板 → 8 个竖直面片全为假 -----
+        if (surroundedByPanes) {
             northLower = false;
             eastLower = false;
             southLower = false;
@@ -202,10 +199,6 @@ public final class PaneConnection {
             eastUpper = false;
             southUpper = false;
             westUpper = false;
-            northEast = true;
-            southEast = true;
-            southWest = true;
-            northWest = true;
         }
 
         return state
@@ -233,29 +226,9 @@ public final class PaneConnection {
         return level.getBlockState(pos.offset(dx, 0, dz)).getBlock() instanceof IronBarsBlock;
     }
 
-    /** 该位置是不是“有方块”（非空气就算，含流体）。规则 5 使用，随规则 5 一起停用。 */
-    @SuppressWarnings("unused")
+    /** 该位置是不是“有方块”（非空气就算，含流体）。 */
     private static boolean hasBlock(BlockGetter level, BlockPos pos) {
         return !level.getBlockState(pos).isAir();
-    }
-
-    /**
-     * 指定位置那块玻璃板在 direction 方向的竖片是否启用（上半或下半任意一个为真）。
-     * 例如 direction=EAST 时看的就是它的 east 与 btsdhz_east_up。
-     */
-    private static boolean hasSidePiece(BlockGetter level, BlockPos panePos, Direction direction) {
-        BlockState state = level.getBlockState(panePos);
-        return switch (direction) {
-            case NORTH -> isOn(state, CrossCollisionBlock.NORTH, ModBlockStateProperties.PANE_NORTH_UP);
-            case EAST -> isOn(state, CrossCollisionBlock.EAST, ModBlockStateProperties.PANE_EAST_UP);
-            case SOUTH -> isOn(state, CrossCollisionBlock.SOUTH, ModBlockStateProperties.PANE_SOUTH_UP);
-            case WEST -> isOn(state, CrossCollisionBlock.WEST, ModBlockStateProperties.PANE_WEST_UP);
-            default -> false;
-        };
-    }
-
-    private static boolean isOn(BlockState state, Property<Boolean> lower, Property<Boolean> upper) {
-        return isOn(state, lower) || isOn(state, upper);
     }
 
     private static boolean isOn(BlockState state, Property<Boolean> property) {
