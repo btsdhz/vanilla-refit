@@ -36,7 +36,8 @@ repositories {
 }
 
 base {
-    archivesName = mod_id
+    // 产物名带上游戏本体版本，方便区分多版本：btsdhz_original-1.21.1-1.0.0.jar
+    archivesName = "${mod_id}-${minecraft_version}"
 }
 
 // Mojang ships Java 21 to end users in 1.21.1, so mods should target Java 21.
