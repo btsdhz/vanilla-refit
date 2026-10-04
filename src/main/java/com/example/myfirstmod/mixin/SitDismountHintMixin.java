@@ -1,9 +1,9 @@
 package com.example.myfirstmod.mixin;
 
 import com.example.myfirstmod.entity.SitEntity;
-import com.llamalad7.mixinextras.sugar.Local;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -20,6 +20,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * 之后、也是该数据包处理的最后一段; 取消它只会跳过这条提示本身(叠加提示与
  * 旁白), 不影响乘客挂载。座位数据包是一次性的, 玩家装好就完事。
  *
+ * 这里不抓 handleSetEntityPassengersPacket 的局部变量: 那个方法里有两个 Entity 局部
+ * (ordinal 0 是载具、ordinal 1 是乘客), 之前抓错了对象, 判断永远为假, 提示会照旧出现。
+ * 现在改成直接看本地玩家有没有坐在本模组的座位上——原版只会在
+ * "上车的正好是本地玩家"时才走这条提示, 两者是同一件事, 也不会随局部变量表变化而失效。
+ *
  * require = 0: 这里的目标只是"少一条提示", 属于装饰性修改。原版改动方法签名时
  * 注入点找不到是小事, 不该让整局游戏崩掉; 找不到就退化成原版行为(提示重新出现)。
  */
@@ -35,8 +40,9 @@ public abstract class SitDismountHintMixin {
             remap = false,
             require = 0
     )
-    private void btsdhz$skipDismountHintForSeat(CallbackInfo ci, @Local(ordinal = 1) Entity passenger) {
-        if (passenger instanceof SitEntity) {
+    private void btsdhz$skipDismountHintForSeat(CallbackInfo ci) {
+        Player player = Minecraft.getInstance().player;
+        if (player != null && player.getVehicle() instanceof SitEntity) {
             ci.cancel();
         }
     }
