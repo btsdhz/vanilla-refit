@@ -13,6 +13,7 @@
     "GlassPaneCornerMixin",
     "BlockStatePostProcessMixin",
     "LevelChunkPostProcessMixin",
+    "PaneIndirectNeighbourMixin",
     "BlockOnSlabStateMixin",
     "TorchOnSlabMixin",
     "LanternOnSlabMixin",

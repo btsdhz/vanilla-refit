@@ -12,6 +12,7 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.CrossCollisionBlock;
 import net.minecraft.world.level.block.IronBarsBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -46,6 +47,11 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
  * 实现说明：规则 4、6、7 都要读四角属性，所以代码里先算完四角（规则 5 → 3 → 2 → 规则 1 的角部分），
  * 再算竖直面片（规则 8 → 7 → 6 → 4 → 规则 1 的竖直部分）。优先级只决定“写同一个属性时谁赢”，
  * 角属性与竖直面片是两组不同的属性，先算角不改变优先级结果。
+ *
+ * 更新方式：本块要读邻居的属性（规则 5~8），规则 1、2 还要读水平斜对角位置是不是玻璃板。
+ * 原版的邻居级联只通知 6 个正交邻居，斜角那一路由 PaneIndirectNeighbourMixin 补
+ * （见 refreshDiagonals，照原版红石线走 updateIndirectNeighbourShapes），
+ * 世界生成那一路由 refreshChunk 的队列收敛负责，所以放置顺序不影响最终结果。
  */
 public final class PaneConnection {
 
@@ -60,6 +66,14 @@ public final class PaneConnection {
 
     private PaneConnection() {
     }
+
+    /** 会与本块互相影响的偏移：8 个水平方向（含 4 个斜角）+ 上下两格，共 10 个。 */
+    private static final int[][] NEIGHBOUR_OFFSETS = {
+            {-1, 0, -1}, {0, 0, -1}, {1, 0, -1},
+            {-1, 0, 0}, {1, 0, 0},
+            {-1, 0, 1}, {0, 0, 1}, {1, 0, 1},
+            {0, 1, 0}, {0, -1, 0}
+    };
 
     /** 区块后处理开始（由 LevelChunkPostProcessMixin 调用）。 */
     public static void beginPostProcess() {
@@ -431,12 +445,43 @@ public final class PaneConnection {
             }
             // 16 = UPDATE_KNOWN_SHAPE：跳过原版的邻居形状级联，改由本方法的队列收敛
             level.setBlock(pos, next, 2 | 16);
-            for (Direction direction : Direction.values()) {
-                BlockPos neighbor = mutable.setWithOffset(pos, direction).immutable();
+            // 这里必须连 4 个水平斜角一起入队：原版级联覆盖不到斜角，而规则 1、2 会读斜角是不是玻璃板
+            for (int[] offset : NEIGHBOUR_OFFSETS) {
+                BlockPos neighbor = mutable.setWithOffset(pos, offset[0], offset[1], offset[2]).immutable();
                 if (level.getBlockState(neighbor).getBlock() instanceof IronBarsBlock && inQueue.add(neighbor)) {
                     queue.add(neighbor);
                 }
             }
+        }
+    }
+
+    /**
+     * 补上“水平斜对角”这条原版邻居级联覆盖不到的依赖：本模组的规则 1、2 会读斜角位置是不是玻璃板，
+     * 而 BlockStateBase#updateNeighbourShapes 只通知 6 个正交邻居，所以斜角上的玻璃板放置或拆除后
+     * 本块不会被重算（表现就是要手动在边上放个方块才更新）。
+     *
+     * 这里照原版红石线（RedStoneWireBlock#updateIndirectNeighbourShapes）的做法，在“间接邻居”这一步
+     * 把变化位置周围的 4 个水平斜角各走一遍 neighborShapeChanged，让它们重算 12 个部件属性；
+     * 斜角那块要是真的变了，它自己又会照常级联下去，所以整条链能收敛。
+     *
+     * @param state 发生变化的方块状态（放置时是新状态、拆除时是旧状态，两种情况都能补到）
+     * @param pos   发生变化的位置
+     */
+    public static void refreshDiagonals(LevelAccessor level, BlockState state, BlockPos pos,
+                                        int flags, int recursionLeft) {
+        int x = pos.getX();
+        int y = pos.getY();
+        int z = pos.getZ();
+        for (Direction facing : Direction.Plane.HORIZONTAL) {
+            Direction side = facing.getClockWise();
+            BlockPos diagonal = new BlockPos(x + facing.getStepX() + side.getStepX(), y,
+                    z + facing.getStepZ() + side.getStepZ());
+            if (!PaneCornerSupport.isSupportedPane(level.getBlockState(diagonal))) {
+                continue;
+            }
+            // 斜角与变化位置之间没有单一轴向，这里给的朝向只是让原版那一步的计算拿到一个合法邻居方向；
+            // 本模组重算时直接读世界，不受这个朝向影响。
+            level.neighborShapeChanged(side.getOpposite(), state, diagonal, pos, flags, recursionLeft);
         }
     }
 
