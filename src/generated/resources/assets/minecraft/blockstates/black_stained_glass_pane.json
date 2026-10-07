@@ -1,0 +1,201 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "minecraft:block/black_stained_glass_pane_post"
+      },
+      "when": {
+        "btsdhz_east_up": "false",
+        "btsdhz_ne": "false",
+        "btsdhz_north_up": "false",
+        "btsdhz_nw": "false",
+        "btsdhz_se": "false",
+        "btsdhz_south_up": "false",
+        "btsdhz_sw": "false",
+        "btsdhz_west_up": "false",
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "minecraft:block/black_stained_glass_pane_noside"
+      },
+      "when": {
+        "btsdhz_east_up": "false",
+        "btsdhz_ne": "false",
+        "btsdhz_north_up": "false",
+        "btsdhz_nw": "false",
+        "btsdhz_se": "false",
+        "btsdhz_south_up": "false",
+        "btsdhz_sw": "false",
+        "btsdhz_west_up": "false",
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "minecraft:block/black_stained_glass_pane_noside_alt"
+      },
+      "when": {
+        "btsdhz_east_up": "false",
+        "btsdhz_ne": "false",
+        "btsdhz_north_up": "false",
+        "btsdhz_nw": "false",
+        "btsdhz_se": "false",
+        "btsdhz_south_up": "false",
+        "btsdhz_sw": "false",
+        "btsdhz_west_up": "false",
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "minecraft:block/black_stained_glass_pane_noside_alt",
+        "y": 90
+      },
+      "when": {
+        "btsdhz_east_up": "false",
+        "btsdhz_ne": "false",
+        "btsdhz_north_up": "false",
+        "btsdhz_nw": "false",
+        "btsdhz_se": "false",
+        "btsdhz_south_up": "false",
+        "btsdhz_sw": "false",
+        "btsdhz_west_up": "false",
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "minecraft:block/black_stained_glass_pane_noside",
+        "y": 270
+      },
+      "when": {
+        "btsdhz_east_up": "false",
+        "btsdhz_ne": "false",
+        "btsdhz_north_up": "false",
+        "btsdhz_nw": "false",
+        "btsdhz_se": "false",
+        "btsdhz_south_up": "false",
+        "btsdhz_sw": "false",
+        "btsdhz_west_up": "false",
+        "east": "false",
+        "north": "false",
+        "south": "false",
+        "west": "false"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_side_lower_black_stained_glass_pane"
+      },
+      "when": {
+        "north": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_side_lower_black_stained_glass_pane",
+        "y": 90
+      },
+      "when": {
+        "east": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_side_lower_alt_black_stained_glass_pane"
+      },
+      "when": {
+        "south": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_side_lower_alt_black_stained_glass_pane",
+        "y": 90
+      },
+      "when": {
+        "west": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_side_upper_black_stained_glass_pane"
+      },
+      "when": {
+        "btsdhz_north_up": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_side_upper_black_stained_glass_pane",
+        "y": 90
+      },
+      "when": {
+        "btsdhz_east_up": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_side_upper_alt_black_stained_glass_pane"
+      },
+      "when": {
+        "btsdhz_south_up": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_side_upper_alt_black_stained_glass_pane",
+        "y": 90
+      },
+      "when": {
+        "btsdhz_west_up": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_corner_black_stained_glass_pane"
+      },
+      "when": {
+        "btsdhz_ne": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_corner_se_black_stained_glass_pane"
+      },
+      "when": {
+        "btsdhz_se": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_corner_sw_black_stained_glass_pane"
+      },
+      "when": {
+        "btsdhz_sw": "true"
+      }
+    },
+    {
+      "apply": {
+        "model": "btsdhz_original:block/pane_corner_nw_black_stained_glass_pane"
+      },
+      "when": {
+        "btsdhz_nw": "true"
+      }
+    }
+  ]
+}

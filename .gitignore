@@ -1,0 +1,55 @@
+### Gradle ###
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/**/build/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/**/out/
+
+.run/
+
+### Eclipse ###
+.apt_generated
+.classpath
+.eclipse/
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/**/bin/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+### Minecraft Modding ###
+run/
+!**/src/**/run/
+# 多版本开发时的运行目录（run-1.20.1/、run-1.21.4/ …）
+/run-*/
+/run-data-*/
+**/src/generated/**/.cache/
+repo/
+!**/src/**/repo/
+
+### 本机解包/本地工作目录（不入库） ###
+/sourcesWithNeoForge(源码解包)/
+/1.21.1资源解包/
+/备份/
+/报错/
+# 文件名清单：tools/输出本目录全部文件名.bat 会在"它被运行的目录"生成一份，
+# 只写 /wen_jian.txt 挡不住子目录里的（历史上因此把两份混进 assets/ 并被打进 jar），
+# 所以这里不加前导斜杠，任何层级都忽略。
+wen_jian.txt
+/src/main/resources/.cache/
+/src/main/resources/assets/**/.cache/
