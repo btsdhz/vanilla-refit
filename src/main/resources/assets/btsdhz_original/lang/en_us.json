@@ -1,0 +1,21 @@
+{
+  "block.btsdhz_original.smooth_stone_stairs": "Smooth Stone Stairs",
+  "item.btsdhz_original.smooth_stone_stairs": "Smooth Stone Stairs",
+  "block.btsdhz_original.merged_slab": "Mixed Slab",
+  "item.btsdhz_original.merged_slab": "Mixed Slab",
+  "entity.btsdhz_original.fence_knot": "Fence Rope",
+  "key.categories.btsdhz_original": "Vanilla Refit",
+  "key.btsdhz_original.crawl": "Crawl (Hold)",
+  "key.btsdhz_original.sit": "Sit (Toggle)",
+  "key.btsdhz_original.placement_mode": "Cycle Placement Mode (Slab/Stair)",
+  "message.btsdhz_original.placement_mode.slab": "Slab placement mode: %s",
+  "message.btsdhz_original.placement_mode.stair": "Stair placement mode: %s",
+  "placement_mode.btsdhz_original.mod": "Default",
+  "placement_mode.btsdhz_original.mod2": "Mixed",
+  "placement_mode.btsdhz_original.mod3": "Flush",
+  "placement_mode.btsdhz_original.vanilla": "Vanilla",
+
+  "btsdhz_original.configuration.title": "Vanilla Refit Configs",
+  "btsdhz_original.configuration.section.btsdhz_original.common.toml": "Vanilla Refit Configs",
+  "btsdhz_original.configuration.section.btsdhz_original.common.toml.title": "Vanilla Refit Configs"
+}
