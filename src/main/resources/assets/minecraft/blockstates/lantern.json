@@ -1,0 +1,22 @@
+{
+  "variants": {
+    "hanging=false,btsdhz_slab_offset=none": {
+      "model": "minecraft:block/lantern"
+    },
+    "hanging=false,btsdhz_slab_offset=lowered": {
+      "model": "minecraft:block/lantern"
+    },
+    "hanging=false,btsdhz_slab_offset=raised": {
+      "model": "minecraft:block/lantern"
+    },
+    "hanging=true,btsdhz_slab_offset=none": {
+      "model": "minecraft:block/lantern_hanging"
+    },
+    "hanging=true,btsdhz_slab_offset=lowered": {
+      "model": "minecraft:block/lantern_hanging"
+    },
+    "hanging=true,btsdhz_slab_offset=raised": {
+      "model": "minecraft:block/lantern_hanging"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "parent": "btsdhz_original:block/pane_corner_nw",
+  "textures": {
+    "edge": "minecraft:block/iron_bars",
+    "pane": "minecraft:block/iron_bars"
+  }
+}

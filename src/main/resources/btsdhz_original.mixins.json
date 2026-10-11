@@ -1,0 +1,51 @@
+{
+  "required": true,
+  "package": "com.example.myfirstmod.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "SlabBlockMixin",
+    "OnSlabCollisionMixin",
+    "OnSlabPickBlockMixin",
+    "BlockItemMixin",
+    "BucketMixin",
+    "StairBlockMixin",
+    "IronBarsBlockMixin",
+    "GlassPaneCornerMixin",
+    "BlockStatePostProcessMixin",
+    "LevelChunkPostProcessMixin",
+    "PaneIndirectNeighbourMixin",
+    "BlockOnSlabStateMixin",
+    "TorchOnSlabMixin",
+    "LanternOnSlabMixin",
+    "FenceOnSlabMixin",
+    "CrossCollisionOnSlabMixin",
+    "WallOnSlabMixin",
+    "ClipContextShapeMixin",
+    "BlockBehaviourSlabWallMixin",
+    "BlockStateSymmetryMixin",
+    "StateHolderNeighboursMixin",
+    "RedstoneTorchOnSlabMixin",
+    "ServerPlayerGameModeMixin",
+    "LeadItemMixin",
+    "FenceLeadUseMixin",
+    "LeashKnotOnSlabMixin",
+    "BlockAttachedKnotOffsetMixin",
+    "AnvilMenuMixin",
+    "PlayerSitMixin",
+    "PlayerEyeHeightMixin",
+    "PlayerCrawlPoseMixin"
+  ],
+  "client": [
+    "TorchParticleMixin",
+    "RedstoneTorchParticleMixin",
+    "MultiPlayerGameModeMixin",
+    "SitDismountHintMixin",
+    "ModelBakeryAccessor",
+    "ModelManagerGetModelMixin"
+  ],
+  "server": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
