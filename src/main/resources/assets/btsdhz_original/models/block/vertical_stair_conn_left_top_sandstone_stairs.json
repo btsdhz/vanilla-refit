@@ -1,0 +1,9 @@
+{
+  "parent": "btsdhz_original:block/vertical_stair_conn_left_top_multi",
+  "textures": {
+    "particle": "minecraft:block/sandstone",
+    "top": "minecraft:block/sandstone_top",
+    "bottom": "minecraft:block/sandstone_bottom",
+    "side": "minecraft:block/sandstone"
+  }
+}

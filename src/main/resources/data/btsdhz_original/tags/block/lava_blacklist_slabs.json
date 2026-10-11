@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "#minecraft:wooden_slabs"
+  ],
+  "remove": [
+    "minecraft:warped_slab",
+    "minecraft:crimson_slab"
+  ]
+}

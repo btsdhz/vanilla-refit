@@ -1,0 +1,85 @@
+{
+  "variants": {
+    "btsdhz_fluid=lava,btsdhz_mode=slab,type=bottom": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=lava,btsdhz_mode=slab,type=double": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=lava,btsdhz_mode=slab,type=top": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=lava,btsdhz_mode=vertical_ew,type=bottom": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=lava,btsdhz_mode=vertical_ew,type=double": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=lava,btsdhz_mode=vertical_ew,type=top": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=lava,btsdhz_mode=vertical_ns,type=bottom": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=lava,btsdhz_mode=vertical_ns,type=double": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=lava,btsdhz_mode=vertical_ns,type=top": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=none,btsdhz_mode=slab,type=bottom": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=none,btsdhz_mode=slab,type=double": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=none,btsdhz_mode=slab,type=top": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=none,btsdhz_mode=vertical_ew,type=bottom": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=none,btsdhz_mode=vertical_ew,type=double": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=none,btsdhz_mode=vertical_ew,type=top": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=none,btsdhz_mode=vertical_ns,type=bottom": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=none,btsdhz_mode=vertical_ns,type=double": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=none,btsdhz_mode=vertical_ns,type=top": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=water,btsdhz_mode=slab,type=bottom": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=water,btsdhz_mode=slab,type=double": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=water,btsdhz_mode=slab,type=top": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=water,btsdhz_mode=vertical_ew,type=bottom": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=water,btsdhz_mode=vertical_ew,type=double": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=water,btsdhz_mode=vertical_ew,type=top": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=water,btsdhz_mode=vertical_ns,type=bottom": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=water,btsdhz_mode=vertical_ns,type=double": {
+      "model": "btsdhz_original:block/merged_slab"
+    },
+    "btsdhz_fluid=water,btsdhz_mode=vertical_ns,type=top": {
+      "model": "btsdhz_original:block/merged_slab"
+    }
+  }
+}

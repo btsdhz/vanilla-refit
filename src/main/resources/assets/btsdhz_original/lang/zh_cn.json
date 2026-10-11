@@ -1,0 +1,20 @@
+{
+  "block.btsdhz_original.smooth_stone_stairs": "平滑石楼梯",
+  "item.btsdhz_original.smooth_stone_stairs": "平滑石楼梯",
+  "block.btsdhz_original.merged_slab": "混合半砖",
+  "item.btsdhz_original.merged_slab": "混合半砖",
+  "entity.btsdhz_original.fence_knot": "拴绳",
+  "key.categories.btsdhz_original": "原版精修",
+  "key.btsdhz_original.crawl": "爬行(按住)",
+  "key.btsdhz_original.sit": "坐下(切换)",
+  "key.btsdhz_original.placement_mode": "切换放置逻辑(手持台阶/楼梯)",
+  "message.btsdhz_original.placement_mode.slab": "台阶放置逻辑: %s",
+  "message.btsdhz_original.placement_mode.stair": "楼梯放置逻辑: %s",
+  "placement_mode.btsdhz_original.mod": "默认",
+  "placement_mode.btsdhz_original.mod2": "混合",
+  "placement_mode.btsdhz_original.mod3": "紧贴",
+  "placement_mode.btsdhz_original.vanilla": "原版",
+  "btsdhz_original.configuration.title": "原版精修 配置",
+  "btsdhz_original.configuration.section.btsdhz_original.common.toml": "原版精修 配置",
+  "btsdhz_original.configuration.section.btsdhz_original.common.toml.title": "原版精修 配置"
+}
