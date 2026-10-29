@@ -1,4 +1,4 @@
-# 更新日志
+# 更新日志 / Changelog
 
 ## 1.0.5
 
@@ -15,15 +15,13 @@
 
 ---
 
-## 1.0.5
-
-（English）
+## 1.0.5 (English)
 
 A glass pane / iron bars connection-appearance focused update. Gameplay, block state counts and save format are unchanged.
 
 **Changes**
 
-- The glass pane / iron bars connection logic has been reworked: it still only reads what the neighbouring blocks are (not the properties they compute), so the result is independent of placement order, and it now fills in the remaining faces of continuous shapes - a single live face, a large face missing one corner, or a set of faces all concentrated in one direction get completed automatically.
+- The glass pane / iron bars connection logic has been reworked: it still only reads what the neighbouring blocks are (not the properties they compute), so the result is independent of placement order, and it now fills in the remaining faces of continuous shapes - a single live face, a large face missing one corner, or a set of faces all concentrated in one direction get completed automatically. Corner faces are now lit only when their positive condition is satisfied.
 - Further fine-tuning of the glass pane connection appearance; this is an incremental improvement rather than a final version, so a few layouts look different from 1.0.4. Collision boxes, the debug stick behaviour and existing-world appearance are unchanged.
 
 **Ports**
@@ -50,6 +48,24 @@ A glass pane / iron bars connection-appearance focused update. Gameplay, block s
 - 本次五个版本（1.20.1 / 1.21.1 / 1.21.4 / 1.21.8 / 1.21.10）一起更新，三项都是纯逻辑改动，各版本内容一致。
 - 说明：这两处问题在 1.0.3 打包时尚未定位到，所以没有进 1.0.3，只在本次修复。
 
+## 1.0.4 (English)
+
+A critical update focused on two cases where the game could not be entered: dedicated server startup failure and world creation becoming stuck on the progress screen. It also adjusts part of the glass pane connection appearance. Gameplay, block-state counts, and save format are unchanged. **Updating all users is strongly recommended.**
+
+**Fixes**
+
+- **New worlds stuck on the "Generating world" progress screen**: during world generation, vanilla can pass `null` for `mirror` or `rotation` when transforming certain structure pieces, such as abandoned mineshaft crossings. The mod's symmetry compatibility code did not guard against null and threw a `NullPointerException`, stopping the generation thread at an arbitrary percentage. Both paths now treat `null` as "no transformation", matching vanilla block behavior. The issue existed since 1.0.0, affected every game version, and depended on the world seed because it only occurred when one of these structure pieces was generated. Incomplete worlds that were already stuck should be deleted and regenerated.
+- **Dedicated servers failing to start and therefore failing to generate worlds**: the mod registered three client-only model event listeners unconditionally during construction. The dedicated server had to resolve those method references and attempted to load client model classes, causing `NoClassDefFoundError: net/minecraft/client/resources/model/...` and preventing the mod from loading. Those three listeners and one similar client listener are now registered only on the client. Client behavior is unchanged, while dedicated servers can now start and generate worlds. This issue also existed since 1.0.0 and affected every game version; integrated single-player uses the client process and did not trigger it.
+
+**Changes**
+
+- The glass pane / iron bars connection rules no longer contain the rule that extinguished a face when a corner condition failed. Corner faces are now lit only by positive conditions. As a result, small corner faces can appear more often than in 1.0.3 when a corner is empty. Properties, block-state counts, save format, and rendering method are unchanged; only some connection appearances differ from 1.0.3.
+
+**Ports**
+
+- All five editions (1.20.1 / 1.21.1 / 1.21.4 / 1.21.8 / 1.21.10) were updated together. All three changes are logic-only and identical across editions.
+- These two startup issues were not identified when 1.0.3 was packaged, so they were not included in 1.0.3 and are fixed only in this release.
+
 ## 1.0.3
 
 以玻璃板连接规则与日志可读性为主的一次更新，功能与状态数不变，**建议尽快升级**。
@@ -65,6 +81,22 @@ A glass pane / iron bars connection-appearance focused update. Gameplay, block s
 **适配**
 
 - 本次五个版本（1.20.1 / 1.21.1 / 1.21.4 / 1.21.8 / 1.21.10）一起更新，功能内容一致；连接规则是纯逻辑改动，各版本无差异。
+
+## 1.0.3 (English)
+
+An update focused on glass pane connection rules and log readability. Gameplay and block-state counts are unchanged. **Updating is recommended.**
+
+**Fixes**
+
+- Glass pane / iron bars connection rules were reworked. The 1.0.2 rules produced incorrect results in several layouts, particularly for corners and half-height vertical faces. The new rules read only the types of neighbouring blocks and no longer read properties computed by neighbours, so the result is independent of placement order. Glass panes and iron bars share the same rules. Properties, block-state counts, save format, and rendering method are unchanged; only some connection appearances differ from 1.0.2.
+
+**Changes**
+
+- Startup and resource-reload logging now uses formal, concise messages. Repeated loading messages were removed, per-block progress messages were lowered to debug level, and prefixes were standardized as `[原版精修/模型|状态|配置|基准]`. Normal startup now prints only a small number of summaries and self-check results.
+
+**Ports**
+
+- All five editions were updated together with the same feature set. The connection rule change is logic-only and identical across editions.
 
 ## 1.0.2
 
@@ -100,6 +132,40 @@ A glass pane / iron bars connection-appearance focused update. Gameplay, block s
 
 - 玻璃板 / 铁栏杆的连接规则换成第三套六条：判定只读周围方块的类别，不再互相读"邻居算出来的属性"，因此无论按什么顺序摆放，最终连接结果都唯一。1.0.1 的已知问题"连接结果可能受放置顺序影响"本次解决；个别摆法的外观会与 1.0.1 不同。
 
+## 1.0.2 (English)
+
+An update focused on memory and rendering overhead. The glass pane / iron bars and fence / wall models and state tables were reworked, along with a set of lead fixes and connection-rule adjustments.
+
+**Optimizations**
+
+- Glass panes and iron bars now use one block-state model plus runtime assembly from parts. Block-state counts and properties are unchanged (8,192 states per block), but each state no longer stores a separate model. In two measurements on the same machine and client (main menu, after GC), total live memory went from **1.42 GB to 710 MB (782 MB saved, -52%)**. `KeyValueCondition` objects went from 10.64M to 322k, `Optional` from 10.65M to 329k, and `MultiPartBakedModel` from 175,562 to 28,106. The 147,456 pane states now share 18 model instances, one per texture. Collision shapes, connection rules, debug-stick behavior, and existing-world appearance are unchanged.
+- Runtime pane assembly caches its result by a 12-bit parts mask. The lazy, lock-free cache means `getQuads` no longer allocates collections during each call. The render path now reads 12 properties and performs one cache lookup per call, at a cost of about 0.6 MB.
+- Block states no longer each store a copy of vanilla's neighbour lookup tables (`ArrayTable` plus two index tables). These tables were unrelated to rendering and connection rules and cost about 2.4 KiB per added state, accounting for 53% of that fixed cost (216k tables, about 230 MiB). Neighbour transitions are now calculated from property indexes. Main-menu memory after GC fell from **678 MiB to 444 MiB (-234 MiB, -34%)** in the same development client. State counts, properties, appearance, and connection rules are unchanged. Startup sampling verifies the transitions, and the optimization automatically yields to FerriteCore. It can be disabled with `-Dbtsdhz_original.compactStateNeighbours=false`.
+- Fences and walls no longer bake a separate assembled model for every block state. They use one model per material plus runtime selection of model parts, using the same parts and culling ownership as vanilla baking. Any structural mismatch automatically falls back to vanilla. Clean-environment memory fell from **420 to 396 MiB**, and development-client memory from **444 to 419 MiB**. `MultiPartBakedModel` went from 28,106 to 2,691, and `ImmutablePair` from 144,424 to 35,244.
+- Together, the previous two optimizations reduced the mod's overhead in a clean environment from **667 MiB to 396 MiB** (net increase over pure NeoForge from +426 MiB to +155 MiB). The cost per added block state fell from 2.39 KB to 897 B.
+- The mod no longer stores one vanilla top-level model entry for every block state. Vanilla creates a `ModelResourceLocation` containing every property for each state and keeps both unbaked and baked copies. A single pane block has 8,192 states, so 18 pane blocks produced 147k entries that all referred to the same model instance. Each pane block now keeps one entry per model, while a fallback parser still resolves old-style state-based model lookups. Clean-environment memory fell from **431 MB to 368 MB (-63 MB)** and 203,336 state keys were removed: glass panes 147,438 keys / 47.0 MiB, stairs 27,303 / 5.8 MiB, walls 24,275 / 5.1 MiB, slabs 3,180 / 0.6 MiB, and fences 1,140 / 0.2 MiB. Block states, properties, appearance, collision, and existing worlds are unchanged. A self-check runs after each resource reload. The optimization can be disabled with `-Dbtsdhz_original.pruneModelKeys=false`.
+- The pane 12-part mask is now cached per block state. Vanilla asks for six directional quad sets and one undirected set while baking a state, repeating the same calculation seven times. Each state is now evaluated once through `util/StateIntCache`, with no lock and no persistent allocation. In a scene with 40,000 glass panes, quad lookup fell from **1,010 ns to 113 ns per block (8.9x faster)**, reducing that part of a full rebuild from about 28 ms to about 3 ms. Steady-state frame rate is unchanged because geometry is baked into chunk meshes. Properties, state counts, appearance, collision, existing worlds, and debug-stick behavior are unchanged.
+- Slab and stair fluid storage no longer encodes water twice. Vanilla `waterlogged` was previously forced to false while water was also stored in a custom three-value property, leaving only three of six combinations useful. Water now uses vanilla `waterlogged`, while non-water fluids (currently lava) use a two-value custom property. Slabs went from 54 to **36** states and stairs from 480 to **320**. Total registered block states went from 216,376 to **206,176**. Clean-environment memory fell from **367.33 to 358.79 MB (-8.5 MB)**, including stair memory from 38.91 to 31.33 MB. Waterlogged slabs and stairs also remain waterlogged if the mod is removed.
+
+**Fixes**
+
+- Leash knots, their hitboxes, and leash endpoints now follow fences that are shifted by half a block on top or bottom slabs. This covers both vanilla animal leads and the mod's fence-to-fence lead connections.
+- Right-click targeting now works in the half-block volume where fences, walls, torches, and lanterns extend into a neighbouring slab block. Previously these clicks were treated as slab clicks. The same redirection already used for breaking and middle-click selection now applies here, including leash-knot interactions.
+- If one end of a fence lead is already attached and the other end is held by the player, clicking another fence now completes the connection even if the player is not holding a lead. Starting a new connection or cancelling by clicking the same fence still requires a lead.
+- Leads can now be connected in either order. After attaching one end to a fence, the player can hold a lead and click an animal to connect it to that fence knot.
+- Fixed a visual lead remaining in the player's hand after completing a connection. Several paths cleared only the player's state without clearing the knot entity marker; all paths now clear both the server state and the client mirror.
+- Runtime pane assembly now replaces only the block-state model instead of overriding the item icon. Glass panes no longer appear as 3D posts in inventories.
+- Glass panes and iron bars from other mods no longer receive the mod's eight additional properties. Previously every class extending `IronBarsBlock` went from 32 to 8,192 states (256x memory) without receiving the matching appearance or collision behavior. Third-party panes and bars now keep vanilla state counts, appearance, collision, and connection rules.
+
+**Ports**
+
+- All five editions were updated together with the same features.
+- Top-level model table pruning is active only on 1.21.1 and 1.21.4. The model table layout differs on 1.20.1, 1.21.8, and 1.21.10, so that optimization is skipped there. All other optimizations and fixes were synchronized.
+
+**Connection rules**
+
+- Glass pane / iron bars connection rules were replaced with a third six-rule set. The rules read only the types of surrounding blocks and no longer read properties computed by neighbours, so placement order cannot produce a different final result. This resolves the 1.0.1 known issue. Some layouts look different from 1.0.1.
+
 ## 1.0.1
 
 **新增**
@@ -130,6 +196,36 @@ A glass pane / iron bars connection-appearance focused update. Gameplay, block s
 
 - 玻璃板/铁栏杆的连接结果仍可能受放置顺序影响，后续版本再处理。
 
+## 1.0.1 (English)
+
+**New**
+
+- Vertical slabs and vertical stairs are now generated at runtime instead of receiving pre-generated models and block states. Vanilla and modded slabs and stairs can now be placed vertically. Individual blocks can be excluded in the configuration, and `/btsdhz_original blocklist` lists the active rules.
+- Vertical slabs and vertical stairs support mirroring and rotation through the Create Symmetry Wand, Structure Blocks, and WorldEdit. Connected vertical stair sides are swapped correctly during mirroring.
+- Combined-material slabs are transferred with both materials by the Create Symmetry Wand. Removing the mirrored block, or half-mining while sneaking, preserves and restores the surviving half and its drop.
+- Vertically stacked glass panes and iron bars now continue their connection through the vertical rule.
+- Editions were provided for Minecraft 1.20.1 (Forge 47.4.x), 1.21.1 (NeoForge 21.1.x), 1.21.4, 1.21.8, and 1.21.10.
+
+**Fixes**
+
+- Fixed collision and ray targeting for offset blocks such as fences, walls, and lanterns on slabs. Arrows no longer stop in the air above the model, and player movement and projectiles use consistent collision shapes.
+- Fixed missing collision in the gap between a slab and a wall or fence above it after the three-value offset state was introduced.
+- Combined-material slab break particles now use both slab textures instead of always using stone.
+- Combined-material slabs now drop both halves correctly when destroyed by explosions or `/setblock destroy`.
+- Combined-material slabs now emit normal block-break events, so integrations such as Create continue to work.
+- Restored a missing "upper flat connection" model for smooth sandstone stairs. Missing-model errors no longer appear at startup, and vertical-to-flat stair connections render correctly.
+
+**Optimizations**
+
+- Reduced block-state counts substantially by merging vertical stair connection shapes into vanilla `shape` (from 2,880 to 480 states per stair) and combining the two slab-offset booleans for walls, fences, and lanterns into a three-value enum (walls from 1,296 to 972; fences from 128 to 96).
+- Cached merged shapes for offset blocks so targeting and collision queries do not recalculate them repeatedly.
+- Lowered model-wrapper logs from INFO to DEBUG.
+- Removed development scripts and filename lists that had been packaged into resource directories.
+
+**Known issues**
+
+- Glass pane / iron bars connections could still depend on placement order. This was addressed in a later release.
+
 ## 1.0.0
 
 首个正式版本。
@@ -158,3 +254,32 @@ A glass pane / iron bars connection-appearance focused update. Gameplay, block s
 - 修复台阶/楼梯变体的 uv 映射、碰撞箱与面剔除问题。
 - 修复玻璃板斜角依赖导致的放置顺序问题（需要手动更新才正确）。
 - 修复坐姿/爬行状态下的提示与射箭位置等问题。
+
+## 1.0.0 (English)
+
+The first stable release.
+
+**Slabs and stairs**
+
+- Vertical slabs and vertical stairs with placement guide lines.
+- Default / Blend / Flush / Original placement modes, switched with a keybind and saved per world. The central-square ratio is configurable.
+- Combined-material slabs place two materials in one block. Sneak-mine removes only one half. Mining, sound, and drops for the combined state are adapted.
+
+**Alignment and connections**
+
+- Torches, soul torches, redstone torches, lanterns, and soul lanterns can sit on bottom slabs. Lanterns can hang beneath top slabs. Models, collision shapes, and particles shift together.
+- Fences and walls on bottom slabs shift down by half a block and connect normally.
+- Glass panes and iron bars are assembled from 12 parts. Inner faces are hidden, and connection results are independent of placement order.
+
+**Other vanilla changes**
+
+- Glass-type blocks can be mined faster with a pickaxe or an axe.
+- Leads can form a catenary between two fences. Clicking the knot unties it and returns the lead. Breaking a fence also releases the connection.
+- Anvils no longer wear down through use. Material repairs do not accumulate a penalty, and the repair ratio is increased from 25% to 90%.
+- Added crawl (`Ctrl`) and sit (`Z`) keybinds.
+
+**Fixes**
+
+- Fixed UV mapping, collision shapes, and face culling for slab and stair variants.
+- Fixed glass pane diagonal dependencies causing placement-order errors that required a block update.
+- Fixed sit/crawl hints and arrow spawn positions.
